@@ -1,0 +1,63 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="Plugin.cpp" />
+    <ClCompile Include="stdafx.cpp" />
+    <ClCompile Include="framework\EliteDecisionMaking\EliteBehaviorTree\EBehaviorTree.cpp" />
+    <ClCompile Include="framework\EliteDecisionMaking\EliteFiniteStateMachine\EFiniteStateMachine.cpp" />
+    <ClCompile Include="framework\SteeringBehaviors\Steering\SteeringBehaviors.cpp" />
+    <ClCompile Include="framework\EliteMath\EMatrix2x3.cpp" />
+    <ClCompile Include="ISurvivorAgent.cpp" />
+    <ClCompile Include="Inventory.cpp" />
+    <ClCompile Include="framework\EliteAI\EliteGraphs\EGraphConnectionTypes.cpp" />
+    <ClCompile Include="framework\EliteAI\EliteGraphs\EGraphNodeTypes.cpp" />
+    <ClCompile Include="framework\EliteAI\EliteGraphs\EliteGraphUtilities\EGraphEditor.cpp" />
+    <ClCompile Include="framework\EliteAI\EliteGraphs\EliteGraphUtilities\EGraphRenderer.cpp" />
+    <ClCompile Include="framework\EliteGeometry\EGeometry2DTypes.cpp" />
+    <ClCompile Include="framework\EliteInput\EInputManager.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Plugin.h" />
+    <ClInclude Include="stdafx.h" />
+    <ClInclude Include="framework\EliteDecisionMaking\EliteBehaviorTree\EBehaviorTree.h" />
+    <ClInclude Include="framework\EliteDecisionMaking\EliteFiniteStateMachine\EFiniteStateMachine.h" />
+    <ClInclude Include="framework\EliteDecisionMaking\EDecisionMaking.h" />
+    <ClInclude Include="framework\EliteData\EBlackboard.h" />
+    <ClInclude Include="framework\EliteDecisionMaking\EliteBehaviorTree\Behaviors.h" />
+    <ClInclude Include="framework\SteeringBehaviors\Steering\SteeringBehaviors.h" />
+    <ClInclude Include="framework\SteeringBehaviors\SteeringHelpers.h" />
+    <ClInclude Include="framework\EliteMath\EMat22.h" />
+    <ClInclude Include="framework\EliteMath\EMath.h" />
+    <ClInclude Include="framework\EliteMath\EMathUtilities.h" />
+    <ClInclude Include="framework\EliteMath\EMatrix2x3.h" />
+    <ClInclude Include="framework\EliteMath\EVector2.h" />
+    <ClInclude Include="framework\EliteMath\EVector3.h" />
+    <ClInclude Include="framework\EliteMath\FMatrix.h" />
+    <ClInclude Include="ExtendedStructs.h" />
+    <ClInclude Include="ISurvivorAgent.h" />
+    <ClInclude Include="Behaviors.h" />
+    <ClInclude Include="Inventory.h" />
+    <ClInclude Include="framework\EliteDecisionMaking\EInfluenceMap.h" />
+    <ClInclude Include="framework\EliteAI\EliteGraphs\EInfluenceMap.h" />
+    <ClInclude Include="framework\EliteAI\EliteGraphs\EGraphConnectionTypes.h" />
+    <ClInclude Include="framework\EliteAI\EliteGraphs\EGraphNodeTypes.h" />
+    <ClInclude Include="framework\EliteAI\EliteGraphs\EIGraph.h" />
+    <ClInclude Include="framework\EliteAI\EliteGraphs\EliteGraphAlgorithms\EAStar.h" />
+    <ClInclude Include="framework\EliteAI\EliteGraphs\EliteGraphAlgorithms\EBFS.h" />
+    <ClInclude Include="framework\EliteAI\EliteGraphs\EliteGraphAlgorithms\EEularianPath.h" />
+    <ClInclude Include="framework\EliteAI\EliteGraphs\EGraph2D.h" />
+    <ClInclude Include="framework\EliteAI\EliteGraphs\EGraphEnums.h" />
+    <ClInclude Include="framework\EliteAI\EliteGraphs\EGraphVisuals.h" />
+    <ClInclude Include="framework\EliteAI\EliteGraphs\EGridGraph.h" />
+    <ClInclude Include="framework\EliteAI\EliteGraphs\EliteGraphUtilities\EGraphVisuals.h" />
+    <ClInclude Include="framework\EliteAI\EliteGraphs\EliteGraphUtilities\EGraphEditor.h" />
+    <ClInclude Include="framework\EliteAI\EliteGraphs\EliteGraphUtilities\EGraphRenderer.h" />
+    <ClInclude Include="framework\EliteHelpers\ESingleton.h" />
+    <ClInclude Include="framework\EliteGeometry\EGeometry.h" />
+    <ClInclude Include="framework\EliteGeometry\EGeometry2DTypes.h" />
+    <ClInclude Include="framework\EliteGeometry\EGeometry2DUtilities.h" />
+    <ClInclude Include="framework\EliteInput\EInputCodes.h" />
+    <ClInclude Include="framework\EliteInput\EInputData.h" />
+    <ClInclude Include="framework\EliteInput\EInputManager.h" />
+  </ItemGroup>
+</Project>
