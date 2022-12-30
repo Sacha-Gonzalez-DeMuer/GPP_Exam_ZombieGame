@@ -195,7 +195,6 @@
     <ClInclude Include="framework\EliteAI\EliteGraphs\EliteGraphAlgorithms\EAStar.h" />
     <ClInclude Include="framework\EliteAI\EliteGraphs\EliteGraphAlgorithms\EBFS.h" />
     <ClInclude Include="framework\EliteAI\EliteGraphs\EliteGraphAlgorithms\EEularianPath.h" />
-    <ClInclude Include="framework\EliteAI\EliteGraphs\EliteGraphUtilities\EGraphEditor.h" />
     <ClInclude Include="framework\EliteAI\EliteGraphs\EliteGraphUtilities\EGraphRenderer.h" />
     <ClInclude Include="framework\EliteAI\EliteGraphs\EliteGraphUtilities\EGraphVisuals.h" />
     <ClInclude Include="framework\EliteData\EBlackboard.h" />
@@ -218,6 +217,7 @@
     <ClInclude Include="framework\EliteMath\EVector2.h" />
     <ClInclude Include="framework\EliteMath\EVector3.h" />
     <ClInclude Include="framework\EliteMath\FMatrix.h" />
+    <ClInclude Include="framework\EliteRendering\ERenderingTypes.h" />
     <ClInclude Include="framework\SteeringBehaviors\SteeringHelpers.h" />
     <ClInclude Include="framework\SteeringBehaviors\Steering\SteeringBehaviors.h" />
     <ClInclude Include="Inventory.h" />
@@ -227,12 +227,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="framework\EliteAI\EliteGraphs\EGraphConnectionTypes.cpp">
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">../../../stdafx.h</PrecompiledHeaderFile>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">../../../stdafx.h</PrecompiledHeaderFile>
     </ClCompile>
-    <ClCompile Include="framework\EliteAI\EliteGraphs\EGraphNodeTypes.cpp" />
-    <ClCompile Include="framework\EliteAI\EliteGraphs\EliteGraphUtilities\EGraphEditor.cpp">
-      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">../../../../stdafx.h</PrecompiledHeaderFile>
-      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">../../../../stdafx.h</PrecompiledHeaderFile>
+    <ClCompile Include="framework\EliteAI\EliteGraphs\EGraphNodeTypes.cpp">
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">../../../stdafx.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">../../../stdafx.h</PrecompiledHeaderFile>
     </ClCompile>
     <ClCompile Include="framework\EliteAI\EliteGraphs\EliteGraphUtilities\EGraphRenderer.cpp">
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">../../../../stdafx.h</PrecompiledHeaderFile>

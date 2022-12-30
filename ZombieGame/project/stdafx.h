@@ -41,10 +41,9 @@
 #include "framework/EliteDecisionMaking/EDecisionMaking.h"
 #include "framework/EliteHelpers/ESingleton.h"
 #include "framework/EliteInput/EInputManager.h"
-
+#include "framework/EliteRendering/ERenderingTypes.h"
 #pragma endregion
 
 #define SAFE_DELETE(p) if (p) { delete (p); (p) = nullptr; }
 
 #define INPUTMANAGER Elite::EInputManager::GetInstance()
-#define DEBUGRENDERER2D EliteDebugRenderer2D::GetInstance()

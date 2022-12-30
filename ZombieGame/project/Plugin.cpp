@@ -2,9 +2,9 @@
 #include "Plugin.h"
 #include "IExamInterface.h"
 #include "framework/EliteData/EBlackboard.h"
-//#include "framework/EliteDecisionMaking/EliteBehaviorTree/Behaviors.h"
 #include "../project/framework/SteeringBehaviors/Steering/SteeringBehaviors.h"
 #include "ISurvivorAgent.h"
+#include "framework/EliteAI/EliteGraphs/EliteGraphUtilities/EGraphRenderer.h"
 
 using namespace std;
 using namespace Elite;
@@ -17,7 +17,22 @@ void Plugin::Initialize(IBaseInterface* pInterface, PluginInfo& info)
 	//This interface gives you access to certain actions the AI_Framework can perform for you
 	m_pInterface = static_cast<IExamInterface*>(pInterface);
 
-	m_pSurvivorAgent = new ISurvivorAgent(m_pInterface);
+
+	//Initialize InfluenceMap
+	m_pInfluenceMap = new InfluenceMap<InfluenceGrid>(false);
+	Vector2 worldDimensions{ m_pInterface->World_GetInfo().Dimensions };
+	int celSize{ static_cast<int>(m_pInterface->Agent_GetInfo().FOV_Range * 1.5f) };
+	int columns{ static_cast<int>(worldDimensions.y) / celSize };
+	int rows{ static_cast<int>(worldDimensions.x) / celSize };
+
+	m_pInfluenceMap->InitializeGrid({-worldDimensions.x /2.f, -worldDimensions.y /2.f }, columns, rows, celSize, false, true);
+	m_pInfluenceMap->InitializeBuffer();
+
+	m_pGraphRenderer = new GraphRenderer();
+
+
+	//Initialize Survivor
+	m_pSurvivorAgent = new ISurvivorAgent(m_pInterface, m_pInfluenceMap);
 
 	//Bit information about the plugin
 	//Please fill this in!!
@@ -63,68 +78,21 @@ void Plugin::InitGameDebugParams(GameDebugParams& params)
 	params.Seed = 36;
 }
 
-//Only Active in DEBUG Mode
-//(=Use only for Debug Purposes)
 void Plugin::Update(float dt)
 {
-	//Demo Event Code
-	//In the end your AI should be able to walk around without external input
 	if (m_pInterface->Input_IsMouseButtonUp(Elite::InputMouseButton::eLeft))
 	{
 		//Update target based on input
 		Elite::MouseData mouseData = m_pInterface->Input_GetMouseData(Elite::InputType::eMouseButton, Elite::InputMouseButton::eLeft);
 		const Elite::Vector2 pos = Elite::Vector2(static_cast<float>(mouseData.X), static_cast<float>(mouseData.Y));
-		m_Target = m_pInterface->Debug_ConvertScreenToWorld(pos);
+		
 	}
-	else if (m_pInterface->Input_IsKeyboardKeyDown(Elite::eScancode_Space))
-	{
-		m_CanRun = true;
-	}
-	else if (m_pInterface->Input_IsKeyboardKeyDown(Elite::eScancode_Left))
-	{
-		m_AngSpeed -= Elite::ToRadians(10);
-	}
-	else if (m_pInterface->Input_IsKeyboardKeyDown(Elite::eScancode_Right))
-	{
-		m_AngSpeed += Elite::ToRadians(10);
-	}
-	else if (m_pInterface->Input_IsKeyboardKeyDown(Elite::eScancode_G))
-	{
-		m_GrabItem = true;
-	}
-	else if (m_pInterface->Input_IsKeyboardKeyDown(Elite::eScancode_U))
-	{
-		m_UseItem = true;
-	}
-	else if (m_pInterface->Input_IsKeyboardKeyDown(Elite::eScancode_R))
-	{
-		m_RemoveItem = true;
-	}
-	else if (m_pInterface->Input_IsKeyboardKeyUp(Elite::eScancode_Space))
-	{
-		m_CanRun = false;
-	}
-	else if (m_pInterface->Input_IsKeyboardKeyDown(Elite::eScancode_Delete))
-	{
-		m_pInterface->RequestShutdown();
-	}
-	else if (m_pInterface->Input_IsKeyboardKeyDown(Elite::eScancode_KP_Minus))
-	{
-		if (m_InventorySlot > 0)
-			--m_InventorySlot;
-	}
-	else if (m_pInterface->Input_IsKeyboardKeyDown(Elite::eScancode_KP_Plus))
-	{
-		if (m_InventorySlot < 4)
-			++m_InventorySlot;
-	}
-	else if (m_pInterface->Input_IsKeyboardKeyDown(Elite::eScancode_Q))
-	{
-		ItemInfo info = {};
-		m_pInterface->Inventory_GetItem(m_InventorySlot, info);
-		std::cout << (int)info.Type << std::endl;
-	}
+
+
+	m_pInfluenceMap->SetInfluenceAtPosition(m_pInterface->Agent_GetInfo().Position, 100);
+	m_pInfluenceMap->PropagateInfluence(dt);
 }
+
 
 //Update
 //This function calculates the new SteeringOutput, called once per frame
@@ -219,8 +187,12 @@ SteeringPlugin_Output Plugin::UpdateSteering(float dt)
 //This function should only be used for rendering debug element5s
 void Plugin::Render(float dt) const
 {
+	m_pInfluenceMap->SetNodeColorsBasedOnInfluence();
+
 	//This Render function should only contain calls to Interface->Draw_... functions
 	m_pInterface->Draw_SolidCircle(m_Target, .7f, { 0,0 }, { 1, 0, 0 });
+	m_pGraphRenderer->RenderGraph(m_pInfluenceMap, m_pInterface, true, false, false, false);
+
 }
 
 

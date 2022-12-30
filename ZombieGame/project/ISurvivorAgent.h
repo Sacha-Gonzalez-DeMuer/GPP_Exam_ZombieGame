@@ -4,11 +4,12 @@
 class IExamInterface;
 class ISteeringBehavior;
 class Inventory;
+class InfluenceMap;
 
 class ISurvivorAgent
 {
 public:
-	ISurvivorAgent(IExamInterface* pInterface);
+	ISurvivorAgent(IExamInterface* pInterface, InfluenceMap* pInfluenceMap);
 	ISurvivorAgent(const ISurvivorAgent* other) = delete;
 	ISurvivorAgent(ISurvivorAgent&& other) = delete;
 	ISurvivorAgent& operator=(const ISurvivorAgent& other);
@@ -54,6 +55,9 @@ private:
 
 	//Inventory
 	Inventory* m_pInventory;
+
+	//InfluenceMap
+	InfluenceMap* m_pInfluenceMap;
 
 	std::shared_ptr<Elite::Vector2> m_Target{};
 	UINT m_InventorySlot = 0;

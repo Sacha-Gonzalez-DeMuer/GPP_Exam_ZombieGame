@@ -44,10 +44,10 @@ namespace Elite
 		GraphConnection2D(int from = invalid_node_index, int to = invalid_node_index, float cost = 1.f);
 		virtual ~GraphConnection2D() = default;
 
-		//Color GetColor() const { return m_Color; }
-		//void SetColor(const Color& color) { m_Color = color; }
+		Color GetColor() const { return m_Color; }
+		void SetColor(const Color& color) { m_Color = color; }
 
 	protected:
-		//Color m_Color;
+		Color m_Color;
 	};
 }

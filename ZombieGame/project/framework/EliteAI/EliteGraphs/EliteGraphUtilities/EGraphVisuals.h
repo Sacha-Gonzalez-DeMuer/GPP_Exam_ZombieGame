@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../EliteRendering/ERenderingTypes.h"
+#include "../../../EliteRendering/ERenderingTypes.h"
 
 //Colors
 const Elite::Color DEFAULT_NODE_COLOR{ 0.7f, 0.7f, 0.7f };

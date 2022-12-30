@@ -18,7 +18,7 @@ namespace Elite
 	public:
 		GridGraph(bool isDirectional);
 		GridGraph(int columns, int rows, int cellSize, bool isDirectionalGraph, bool isConnectedDiagonally, float costStraight = 1.f, float costDiagonal = 1.5);
-		void InitializeGrid(int columns, int rows, int cellSize, bool isDirectionalGraph, bool isConnectedDiagonally, float costStraight = 1.f, float costDiagonal = 1.5);
+		void InitializeGrid(Vector2 pos, int columns, int rows, int cellSize, bool isDirectionalGraph, bool isConnectedDiagonally, float costStraight = 1.f, float costDiagonal = 1.5);
 
 		using IGraph::GetNode;
 		T_NodeType* GetNode(int col, int row) const { return m_Nodes[GetIndex(col, row)]; }
@@ -52,6 +52,7 @@ namespace Elite
 		int m_NrOfColumns;
 		int m_NrOfRows;
 		int m_CellSize;
+		Vector2 m_Offset{};
 
 		bool m_IsConnectedDiagonally;
 		float m_DefaultCostStraight;
@@ -102,6 +103,7 @@ namespace Elite
 
 	template<class T_NodeType, class T_ConnectionType>
 	inline void GridGraph<T_NodeType, T_ConnectionType>::InitializeGrid(
+		Vector2 pos,
 		int columns, 
 		int rows, 
 		int cellSize, 
@@ -117,6 +119,7 @@ namespace Elite
 		m_IsConnectedDiagonally = isConnectedDiagonally;
 		m_DefaultCostStraight = costStraight;
 		m_DefaultCostDiagonal = costDiagonal;
+		m_Offset = pos;
 
 		// Create all nodes
 		for (auto r = 0; r < m_NrOfRows; ++r)
@@ -124,7 +127,8 @@ namespace Elite
 			for (auto c = 0; c < m_NrOfColumns; ++c)
 			{
 				int idx = GetIndex(c, r);
-				AddNode(new T_NodeType(idx));
+				T_NodeType* n = new T_NodeType(idx, { pos.x + (r*m_CellSize),  pos.y + (c*m_CellSize)});
+				AddNode(n);
 			}
 		}
 
@@ -230,6 +234,7 @@ namespace Elite
 		auto col = pNode->GetIndex() % m_NrOfColumns;
 		auto row = pNode->GetIndex() / m_NrOfColumns;
 
+
 		return Vector2{ float(col), float(row) };
 	}
 
@@ -243,6 +248,12 @@ namespace Elite
 	template<class T_NodeType, class T_ConnectionType>
 	Elite::Vector2 GridGraph<T_NodeType, T_ConnectionType>::GetNodeWorldPos(int idx) const
 	{
+
+		InfluenceNode* pInfNode{};
+		pInfNode = dynamic_cast<InfluenceNode*>(GetNode(idx));
+		if (pInfNode)
+			return pInfNode->GetPosition();
+
 		auto colRow = GetNodePos(idx);
 		return GetNodeWorldPos((int)colRow.x, (int)colRow.y);
 	}
@@ -252,17 +263,20 @@ namespace Elite
 	{
 		int idx = invalid_node_index;
 
+		Elite::Vector2 position{ pos };
+		position.x -= m_Offset.x;
+		position.y -= m_Offset.y;
 		//Added extra check since  c = int(pos.x / m_CellSize); => doesnt work correcly when out of the lower bounds
 		//TODO add grid start point
-		if (pos.x < 0 || pos.y < 0)
+		if (position.x < 0 || position.y < 0)
 		{
 			return idx;
 		}
 
 		int r, c;
 
-		c = int(pos.x / m_CellSize);
-		r = int(pos.y / m_CellSize);
+		c = int(position.x / m_CellSize);
+		r = int(position.y / m_CellSize);
 
 		if (!IsWithinBounds(c, r)) 
 			return idx;

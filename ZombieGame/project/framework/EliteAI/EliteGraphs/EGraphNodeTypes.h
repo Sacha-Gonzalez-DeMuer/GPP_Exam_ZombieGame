@@ -6,7 +6,6 @@
 /*=============================================================================*/
 
 #pragma once
-
 #include "EGraphEnums.h"
 #include "EliteGraphUtilities/EGraphVisuals.h"
 

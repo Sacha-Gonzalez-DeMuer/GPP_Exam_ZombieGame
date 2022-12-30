@@ -27,7 +27,7 @@ bool GraphConnection::operator!=(const GraphConnection& rhs) const
 
 GraphConnection2D::GraphConnection2D(int from /* = invalid_node_index*/, int to /* = invalid_node_index*/, float cost /* = 1.f*/)
 	:GraphConnection(from, to, cost)
-	//, m_Color(DEFAULT_CONNECTION_COLOR)
+	, m_Color(DEFAULT_CONNECTION_COLOR)
 {
 
 }

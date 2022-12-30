@@ -9,14 +9,16 @@ using namespace Elite;
 using namespace BT_Conditions;
 using namespace BT_Actions;
 
-ISurvivorAgent::ISurvivorAgent(IExamInterface* pInterface)
+ISurvivorAgent::ISurvivorAgent(IExamInterface* pInterface, InfluenceMap* pInfluenceMap)
 	: m_pInventory{new Inventory(pInterface)}
+	, m_pInfluenceMap{pInfluenceMap}
 {
 	Initialize(pInterface);
 }
 
 ISurvivorAgent::~ISurvivorAgent()
 {
+	m_pInfluenceMap = nullptr;
 }
 
 void ISurvivorAgent::Initialize(IExamInterface* pInterface)
@@ -104,7 +106,6 @@ void ISurvivorAgent::UpdateObjectsInFOV(IExamInterface* pInterface)
 	{
 		if (pInterface->Fov_GetEntityByIndex(i, ei))
 		{
-			std::cout << int(ei.Type) << "\n";
 			//std::unique_ptr<EntityInfo> pEntity = std::make_unique<EntityInfo>(ei);
 			m_pEntitiesInFOV.emplace_back(new EntityInfo(ei));
 			continue;
@@ -158,11 +159,7 @@ void ISurvivorAgent::InitializeBehaviorTree(IExamInterface* pInterface)
 					new BehaviorConditional(IsInRangeOfItem),
 					new BehaviorAction(GrabItem)
 				}),
-				new BehaviorSequence
-				({
-					new BehaviorConditional(IsHouseInFOV),
-					new BehaviorAction(GoToClosestHouse)
-				})
+			
 			}),
 			/*new BehaviorSequence
 			({
@@ -170,11 +167,11 @@ void ISurvivorAgent::InitializeBehaviorTree(IExamInterface* pInterface)
 				new BehaviorAction(GoToClosestEntity)
 			}),*/
 
-			new BehaviorSequence
+			/*new BehaviorSequence
 			({
 				new BehaviorConditional(IsHouseInFOV),
 				new BehaviorAction(GoToClosestHouse)
-			}),
+			}),*/
 
 			//Fallback to wander
 			new BehaviorAction(ChangeToLookAround)

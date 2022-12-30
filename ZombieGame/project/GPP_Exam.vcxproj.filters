@@ -9,12 +9,11 @@
     <ClCompile Include="framework\EliteMath\EMatrix2x3.cpp" />
     <ClCompile Include="ISurvivorAgent.cpp" />
     <ClCompile Include="Inventory.cpp" />
-    <ClCompile Include="framework\EliteAI\EliteGraphs\EGraphConnectionTypes.cpp" />
     <ClCompile Include="framework\EliteAI\EliteGraphs\EGraphNodeTypes.cpp" />
-    <ClCompile Include="framework\EliteAI\EliteGraphs\EliteGraphUtilities\EGraphEditor.cpp" />
-    <ClCompile Include="framework\EliteAI\EliteGraphs\EliteGraphUtilities\EGraphRenderer.cpp" />
     <ClCompile Include="framework\EliteGeometry\EGeometry2DTypes.cpp" />
     <ClCompile Include="framework\EliteInput\EInputManager.cpp" />
+    <ClCompile Include="framework\EliteAI\EliteGraphs\EliteGraphUtilities\EGraphRenderer.cpp" />
+    <ClCompile Include="framework\EliteAI\EliteGraphs\EGraphConnectionTypes.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Plugin.h" />
@@ -50,8 +49,6 @@
     <ClInclude Include="framework\EliteAI\EliteGraphs\EGraphVisuals.h" />
     <ClInclude Include="framework\EliteAI\EliteGraphs\EGridGraph.h" />
     <ClInclude Include="framework\EliteAI\EliteGraphs\EliteGraphUtilities\EGraphVisuals.h" />
-    <ClInclude Include="framework\EliteAI\EliteGraphs\EliteGraphUtilities\EGraphEditor.h" />
-    <ClInclude Include="framework\EliteAI\EliteGraphs\EliteGraphUtilities\EGraphRenderer.h" />
     <ClInclude Include="framework\EliteHelpers\ESingleton.h" />
     <ClInclude Include="framework\EliteGeometry\EGeometry.h" />
     <ClInclude Include="framework\EliteGeometry\EGeometry2DTypes.h" />
@@ -59,5 +56,7 @@
     <ClInclude Include="framework\EliteInput\EInputCodes.h" />
     <ClInclude Include="framework\EliteInput\EInputData.h" />
     <ClInclude Include="framework\EliteInput\EInputManager.h" />
+    <ClInclude Include="framework\EliteRendering\ERenderingTypes.h" />
+    <ClInclude Include="framework\EliteAI\EliteGraphs\EliteGraphUtilities\EGraphRenderer.h" />
   </ItemGroup>
 </Project>

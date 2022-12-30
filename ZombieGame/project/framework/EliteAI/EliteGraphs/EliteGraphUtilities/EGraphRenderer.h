@@ -7,6 +7,9 @@
 #include "..\EGraph2D.h"
 #include  <type_traits>
 
+class IBaseInterface;
+
+
 namespace Elite 
 {
 	class GraphRenderer final
@@ -16,10 +19,10 @@ namespace Elite
 		~GraphRenderer() = default;
 
 		template<class T_NodeType, class T_ConnectionType>
-		void RenderGraph(IGraph<T_NodeType, T_ConnectionType>* pGraph, bool renderNodes, bool renderConnections, bool renderNodeTxt = true, bool renderConnectionTxt = true) const;
+		void RenderGraph(IGraph<T_NodeType, T_ConnectionType>* pGraph, IBaseInterface* pInterface, bool renderNodes, bool renderConnections, bool renderNodeTxt = true, bool renderConnectionTxt = true) const;
 
 		template<class T_NodeType, class T_ConnectionType>
-		void RenderGraph(GridGraph<T_NodeType, T_ConnectionType>* pGraph, bool renderNodes, bool renderNodeTxt, bool renderConnections, bool renderConnectionsCosts) const;
+		void RenderGraph(GridGraph<T_NodeType, T_ConnectionType>* pGraph,IBaseInterface* pInterface, bool renderNodes, bool renderNodeTxt, bool renderConnections, bool renderConnectionsCosts) const;
 
 		template<class T_NodeType, class T_ConnectionType>
 		void HighlightNodes(GridGraph<T_NodeType, T_ConnectionType>* pGraph, std::vector<T_NodeType*> path, Color col = HIGHLIGHTED_NODE_COLOR) const;
@@ -27,12 +30,12 @@ namespace Elite
 		void SetNumberPrintPrecision(int precision) { m_FloatPrintPrecision = precision; }
 
 	private:
-		void RenderCircleNode(Vector2 pos, std::string text = "", float radius = DEFAULT_NODE_RADIUS, Elite::Color col = DEFAULT_NODE_COLOR, float depth = 0.0f) const;
-		void RenderRectNode(Vector2 pos, std::string text = "", float width = DEFAULT_NODE_RADIUS, Elite::Color col = DEFAULT_NODE_COLOR, float depth = 0.0f) const;
-		void RenderConnection(GraphConnection* con, Elite::Vector2 toPos, Elite::Vector2 fromPos, std::string text, Elite::Color col = DEFAULT_CONNECTION_COLOR, float depth = 0.0f) const;
+		void RenderCircleNode(IBaseInterface* pInterface, Vector2 pos, std::string text = "", float radius = DEFAULT_NODE_RADIUS, Elite::Color col = DEFAULT_NODE_COLOR, float depth = 0.0f) const;
+		void RenderRectNode(IBaseInterface* pInterface, Vector2 pos, std::string text = "", float width = DEFAULT_NODE_RADIUS, Elite::Color col = DEFAULT_NODE_COLOR, float depth = 0.0f) const;
+		void RenderConnection(IBaseInterface* pInterface, GraphConnection* con, Elite::Vector2 toPos, Elite::Vector2 fromPos, std::string text, Elite::Color col = DEFAULT_CONNECTION_COLOR, float depth = 0.0f) const;
 
 		// Get correct color/text depending on the pNode/pConnection type
-		template<class T_NodeType, typename = typename enable_if<! is_base_of<GraphNode2D, T_NodeType>::value>::type>
+		template<class T_NodeType, typename = typename enable_if<!is_base_of<GraphNode2D, T_NodeType>::value>::type>
 		Elite::Color GetNodeColor(T_NodeType* pNode) const;
 		Elite::Color GetNodeColor(GraphNode2D* pNode) const;
 		Elite::Color GetNodeColor(GridTerrainNode* pNode) const;
@@ -60,6 +63,7 @@ namespace Elite
 	template<class T_NodeType, class T_ConnectionType>
 	void GraphRenderer::RenderGraph(
 		IGraph<T_NodeType, T_ConnectionType>* pGraph, 
+		IBaseInterface* pInterface,
 		bool renderNodes, 
 		bool renderConnections, 
 		bool renderNodeTxt /*= true*/, 
@@ -94,6 +98,7 @@ namespace Elite
 	template<class T_NodeType, class T_ConnectionType>
 	void GraphRenderer::RenderGraph(
 		GridGraph<T_NodeType, T_ConnectionType>* pGraph, 
+		IBaseInterface* pInterface,
 		bool renderNodes, 
 		bool renderNodeNumbers,
 		bool renderConnections, 
@@ -115,7 +120,7 @@ namespace Elite
 					if (renderNodeNumbers)
 						nodeTxt = GetNodeText(pGraph->GetNode(idx));
 
-					RenderRectNode(cellPos, nodeTxt, float(cellSize), GetNodeColor(pGraph->GetNode(idx)), 0.1f);
+					RenderRectNode(pInterface, cellPos, nodeTxt, float(cellSize), GetNodeColor(pGraph->GetNode(idx)), 0.1f);
 				}
 			}
 		}
@@ -131,7 +136,7 @@ namespace Elite
 					if (renderConnectionsCosts)
 						conTxt = GetConnectionText(con);
 
-					RenderConnection(con, pGraph->GetNodeWorldPos(con->GetTo()), pGraph->GetNodeWorldPos(con->GetFrom()), conTxt, GetConnectionColor(con));
+					RenderConnection(pInterface, con, pGraph->GetNodeWorldPos(con->GetTo()), pGraph->GetNodeWorldPos(con->GetFrom()), conTxt, GetConnectionColor(con));
 				}
 			}
 		}
