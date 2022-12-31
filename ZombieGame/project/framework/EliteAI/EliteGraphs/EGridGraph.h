@@ -264,8 +264,8 @@ namespace Elite
 		int idx = invalid_node_index;
 
 		Elite::Vector2 position{ pos };
-		position.x -= m_Offset.x;
-		position.y -= m_Offset.y;
+		position.x -= m_Offset.x - m_CellSize/2;
+		position.y -= m_Offset.y - m_CellSize/2;
 		//Added extra check since  c = int(pos.x / m_CellSize); => doesnt work correcly when out of the lower bounds
 		//TODO add grid start point
 		if (position.x < 0 || position.y < 0)
@@ -275,8 +275,8 @@ namespace Elite
 
 		int r, c;
 
-		c = int(position.x / m_CellSize);
-		r = int(position.y / m_CellSize);
+		r = static_cast<int>(position.x / m_CellSize);
+		c = static_cast<int>(position.y / m_CellSize);
 
 		if (!IsWithinBounds(c, r)) 
 			return idx;

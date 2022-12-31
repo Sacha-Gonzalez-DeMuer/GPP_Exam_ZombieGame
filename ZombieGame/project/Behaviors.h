@@ -83,6 +83,16 @@ namespace BT_Functions
 		t = target;
 		return true;
 	}
+
+	Elite::InfluenceMap<InfluenceGrid>* GetInfluenceMap(Elite::Blackboard* pBlackboard)
+	{
+		Elite::InfluenceMap<InfluenceGrid>* influenceMap{};
+		if (!pBlackboard->GetData("InfluenceMap", influenceMap)) {
+			return false;
+		}
+
+		return influenceMap;
+	}
 }
 
 
@@ -340,6 +350,12 @@ namespace BT_Conditions
 		return pInventory->HasWeapon();
 	}
 
+	bool HasTarget(Elite::Blackboard* (pBlackboard))
+	{
+		std::shared_ptr<Elite::Vector2> t;
+		return GetTarget(pBlackboard, t);
+	}
+
 	bool IsHouseInFOV(Elite::Blackboard* pBlackboard)
 	{
 		auto pHouses{GetHousesInFOV(pBlackboard)};
@@ -358,6 +374,29 @@ namespace BT_Conditions
 		//cast current ISteeringBehavior to LookAround to check if that's the current steering behavior
 		std::shared_ptr<LookAround> la{ std::dynamic_pointer_cast<LookAround>(pSurvivor->GetCurrentSteering()) };
 		return !la;
+	}
+
+	bool AreaScanned(Elite::Blackboard* pBlackboard)
+	{
+		auto pInfluenceMap{ GetInfluenceMap(pBlackboard) };
+		if (!pInfluenceMap)
+			return false;
+
+		auto pInterface{ GetInterface(pBlackboard) };
+		if (!pInterface)
+			return false;
+
+
+		//check influence on neighboring squares 
+		const auto& node = pInfluenceMap->GetNodeAtWorldPos(pInterface->Agent_GetInfo().Position);
+
+		for (const auto& connection : pInfluenceMap->GetConnections(node->GetIndex()))
+		{
+			if (pInfluenceMap->GetNode(connection->GetTo())->GetInfluence() < 50)
+				return false;
+		}
+
+		return true;
 	}
 }
 

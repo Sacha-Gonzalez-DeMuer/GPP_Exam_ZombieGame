@@ -1,15 +1,20 @@
 #pragma once
-#include "Exam_HelperStructs.h"
+#include "ExtendedStructs.h"
+#include "framework\EliteAI\EliteGraphs\EGraph2D.h"
+#include "framework\EliteAI\EliteGraphs\EGridGraph.h"
+#include "framework\EliteAI\EliteGraphs\EInfluenceMap.h"
+#include <set>
 
 class IExamInterface;
 class ISteeringBehavior;
 class Inventory;
-class InfluenceMap;
+using InfluenceGrid = Elite::GridGraph<Elite::InfluenceNode, Elite::GraphConnection>;
 
 class ISurvivorAgent
 {
 public:
-	ISurvivorAgent(IExamInterface* pInterface, InfluenceMap* pInfluenceMap);
+
+	ISurvivorAgent(IExamInterface* pInterface, Elite::InfluenceMap<InfluenceGrid>* pInfluenceMap);
 	ISurvivorAgent(const ISurvivorAgent* other) = delete;
 	ISurvivorAgent(ISurvivorAgent&& other) = delete;
 	ISurvivorAgent& operator=(const ISurvivorAgent& other);
@@ -18,6 +23,7 @@ public:
 
 	void Initialize(IExamInterface* pInterface);
 	void Update(float deltaTime, IExamInterface* pInterface, SteeringPlugin_Output& steering);
+	void Render(float deltaTime, IExamInterface* pInterface);
 
 	//Steering methods
 	void SetSteeringBehavior(ISteeringBehavior* pBehavior) {}
@@ -57,7 +63,8 @@ private:
 	Inventory* m_pInventory;
 
 	//InfluenceMap
-	InfluenceMap* m_pInfluenceMap;
+	Elite::InfluenceMap<InfluenceGrid>* m_pInfluenceMap;
+	void UpdateSeenCells(IExamInterface* pInterface) const;
 
 	std::shared_ptr<Elite::Vector2> m_Target{};
 	UINT m_InventorySlot = 0;

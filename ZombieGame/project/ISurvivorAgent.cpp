@@ -4,12 +4,12 @@
 #include "Behaviors.h"
 #include "IExamInterface.h"
 #include "Inventory.h"
-
+#include <memory>
 using namespace Elite;
 using namespace BT_Conditions;
 using namespace BT_Actions;
 
-ISurvivorAgent::ISurvivorAgent(IExamInterface* pInterface, InfluenceMap* pInfluenceMap)
+ISurvivorAgent::ISurvivorAgent(IExamInterface* pInterface, Elite::InfluenceMap<InfluenceGrid>* pInfluenceMap)
 	: m_pInventory{new Inventory(pInterface)}
 	, m_pInfluenceMap{pInfluenceMap}
 {
@@ -30,11 +30,23 @@ void ISurvivorAgent::Initialize(IExamInterface* pInterface)
 void ISurvivorAgent::Update(float deltaTime, IExamInterface* pInterface, SteeringPlugin_Output& steering)
 {
 	UpdateObjectsInFOV(pInterface);
+	UpdateSeenCells(pInterface);
 
 	if (m_pDecisionMaking)
 		m_pDecisionMaking->Update(deltaTime);
 
 	steering = m_pCurrentSteering->CalculateSteering(deltaTime, &pInterface->Agent_GetInfo());
+}
+
+void ISurvivorAgent::Render(float deltaTime, IExamInterface* pInterface)
+{
+	EAgentInfo eAgentInfo = pInterface->Agent_GetInfo();
+
+	Elite::Vector2 pos{ pInterface->Agent_GetInfo().Position };
+	Elite::Vector2 lookDir{ eAgentInfo.GetForward() };
+	Elite::Vector2 scanPos{ pos + (lookDir * eAgentInfo.FOV_Range) };
+	pInterface->Draw_Segment(pos, scanPos, {1,1,1});
+	//pInterface->Draw_Point(scanPos, 40.0f, { 1,1,1 });
 }
 
 void ISurvivorAgent::SetToWander()
@@ -135,8 +147,7 @@ void ISurvivorAgent::InitializeBehaviorTree(IExamInterface* pInterface)
 			({
 				new BehaviorConditional(IsEnemyInFOV),
 				new BehaviorAction(SetClosestEnemyAsTarget),
-				new BehaviorAction(ChangeToLookAt)
-				,
+				new BehaviorAction(ChangeToLookAt),
 				new BehaviorSelector
 				({
 					new BehaviorSequence
@@ -145,7 +156,7 @@ void ISurvivorAgent::InitializeBehaviorTree(IExamInterface* pInterface)
 						new BehaviorAction(EquipWeapon),
 						new BehaviorAction(UseItem)
 					}),
-
+					new BehaviorConditional(HasTarget),
 					new BehaviorAction(ChangeToFlee)
 				})
 
@@ -174,7 +185,7 @@ void ISurvivorAgent::InitializeBehaviorTree(IExamInterface* pInterface)
 			}),*/
 
 			//Fallback to wander
-			new BehaviorAction(ChangeToLookAround)
+			new BehaviorAction(ChangeToWander)
 		}
 	)) };
 
@@ -193,6 +204,7 @@ Elite::Blackboard* ISurvivorAgent::CreateBlackboard(IExamInterface* pInterface)
 	pBlackboard->AddData("Inventory", m_pInventory);
 	pBlackboard->AddData("Target", m_Target);
 	pBlackboard->AddData("HousesInFOV", &m_pHousesInFOV);
+	pBlackboard->AddData("InfluenceMap", m_pInfluenceMap);
 
 	return pBlackboard;
 }
@@ -204,4 +216,14 @@ void ISurvivorAgent::InitializeSteering()
 	m_pLookAround = std::make_shared<LookAround>();
 	m_pLookAt = std::make_shared<LookAt>();
 	m_pFlee = std::make_shared<Flee>();
+}
+
+void ISurvivorAgent::UpdateSeenCells(IExamInterface* pInterface) const
+{
+	EAgentInfo eAgentInfo = pInterface->Agent_GetInfo();
+
+	Elite::Vector2 pos{ pInterface->Agent_GetInfo().Position };
+	Elite::Vector2 lookDir{ eAgentInfo.GetForward() };
+	Elite::Vector2 scanPos{ pos + (lookDir * eAgentInfo.FOV_Range)};
+	m_pInfluenceMap->SetInfluenceAtPosition(scanPos, 100);
 }

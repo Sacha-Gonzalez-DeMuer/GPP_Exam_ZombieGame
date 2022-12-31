@@ -1,9 +1,6 @@
-﻿  Plugin.cpp
-C:\Users\sacha\OneDrive\Documents\College\Howest\Gameplay-Programming\GPP_Exam\ZombieGame\project\Plugin.cpp(22,36): error C2872: 'InfluenceMap': ambiguous symbol
-C:\Users\sacha\OneDrive\Documents\College\Howest\Gameplay-Programming\GPP_Exam\ZombieGame\project\ISurvivorAgent.h(7,7): message : could be 'InfluenceMap'
-C:\Users\sacha\OneDrive\Documents\College\Howest\Gameplay-Programming\GPP_Exam\ZombieGame\project\framework\EliteAI\EliteGraphs\EInfluenceMap.h(9,27): message : or       'Elite::InfluenceMap'
-C:\Users\sacha\OneDrive\Documents\College\Howest\Gameplay-Programming\GPP_Exam\ZombieGame\project\Plugin.cpp(22,36): error C2027: use of undefined type 'InfluenceMap'
-C:\Users\sacha\OneDrive\Documents\College\Howest\Gameplay-Programming\GPP_Exam\ZombieGame\project\ISurvivorAgent.h(7): message : see declaration of 'InfluenceMap'
-C:\Users\sacha\OneDrive\Documents\College\Howest\Gameplay-Programming\GPP_Exam\ZombieGame\project\Plugin.cpp(35,70): error C2664: 'ISurvivorAgent::ISurvivorAgent(IExamInterface *,InfluenceMap *)': cannot convert argument 2 from 'Elite::InfluenceMap<Plugin::InfluenceGrid> *' to 'InfluenceMap *'
-C:\Users\sacha\OneDrive\Documents\College\Howest\Gameplay-Programming\GPP_Exam\ZombieGame\project\Plugin.cpp(35,54): message : Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or parenthesized function-style cast
-C:\Users\sacha\OneDrive\Documents\College\Howest\Gameplay-Programming\GPP_Exam\ZombieGame\project\ISurvivorAgent.h(12,2): message : see declaration of 'ISurvivorAgent::ISurvivorAgent'
+﻿  EGraphRenderer.cpp
+  ISurvivorAgent.cpp
+  Plugin.cpp
+  Generating Code...
+     Creating library C:\Users\sacha\OneDrive\Documents\College\Howest\Gameplay-Programming\GPP_Exam\ZombieGame\project\..\_DEMO_DEBUG\GPP_Plugin_d.lib and object C:\Users\sacha\OneDrive\Documents\College\Howest\Gameplay-Programming\GPP_Exam\ZombieGame\project\..\_DEMO_DEBUG\GPP_Plugin_d.exp
+  GPP_Exam.vcxproj -> C:\Users\sacha\OneDrive\Documents\College\Howest\Gameplay-Programming\GPP_Exam\ZombieGame\_DEMO_DEBUG\GPP_Plugin_d.dll

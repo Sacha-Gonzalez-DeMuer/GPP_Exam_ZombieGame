@@ -40,7 +40,7 @@ namespace Elite
 		float m_Momentum = 0.2f; // a higher momentum means a higher tendency to retain the current influence
 		float m_Decay = 0.5f; // determines the decay in influence over distance
 
-		float m_PropagationInterval = .9f; //in Seconds
+		float m_PropagationInterval = .05f; //in Seconds
 		float m_TimeSinceLastPropagation = 0.0f;
 
 		std::vector<float> m_InfluenceDoubleBuffer;
