@@ -21,7 +21,7 @@ void Plugin::Initialize(IBaseInterface* pInterface, PluginInfo& info)
 	//Initialize InfluenceMap
 	m_pInfluenceMap = new Elite::InfluenceMap<InfluenceGrid>(false);
 	float worldDimension{ max(m_pInterface->World_GetInfo().Dimensions.x, m_pInterface->World_GetInfo().Dimensions.y)};
-	int celSize{ static_cast<int>(m_pInterface->Agent_GetInfo().FOV_Range * 1.5f) };
+	int celSize{ static_cast<int>(m_pInterface->Agent_GetInfo().FOV_Range / 2.5f) };
 	int colRows{ static_cast<int>(worldDimension) / celSize };
 
 	m_pInfluenceMap->InitializeGrid({-worldDimension/2.f, -worldDimension/2.f }, colRows, colRows, celSize, false, true);
@@ -89,7 +89,9 @@ void Plugin::Update(float dt)
 		
 	}
 
-	m_pInfluenceMap->PropagateInfluence(dt);
+	const float propagateRadius{ m_pInterface->Agent_GetInfo().FOV_Range * 3 };
+	m_pInfluenceMap->PropagateInfluence(dt, m_pInterface->Agent_GetInfo().Position, m_pInterface->Agent_GetInfo().FOV_Range * 3);
+	m_pInterface->Draw_Circle(m_pInterface->Agent_GetInfo().Position, propagateRadius, {0,1,0});
 
 	if (m_pInterface->Input_IsMouseButtonUp(Elite::InputMouseButton::eLeft))
 	{
@@ -146,7 +148,6 @@ void Plugin::Update(float dt)
 		m_pInterface->Inventory_GetItem(m_InventorySlot, info);
 	}
 }
-
 
 //Update
 //This function calculates the new SteeringOutput, called once per frame
@@ -246,8 +247,9 @@ void Plugin::Render(float dt) const
 
 	//This Render function should only contain calls to Interface->Draw_... functions
 	m_pInterface->Draw_SolidCircle(m_Target, .7f, { 0,0 }, { 1, 0, 0 });
-	m_pGraphRenderer->RenderGraph(m_pInfluenceMap, m_pInterface, true, false, false, false);
 
+	auto visibleNodes{ GetVisibleNodes() };
+	m_pGraphRenderer->RenderNodes(m_pInfluenceMap, m_pInterface, visibleNodes, true, false, false, false);
 }
 
 
@@ -287,5 +289,10 @@ vector<EntityInfo> Plugin::GetEntitiesInFOV() const
 	}
 
 	return vEntitiesInFOV;
+}
+
+std::unordered_set<int> Plugin::GetVisibleNodes() const
+{
+	return m_pInfluenceMap->GetNodeIndicesInRadius(m_pInterface->Agent_GetInfo().Position, m_pInterface->Agent_GetInfo().FOV_Range * 5);
 }
 

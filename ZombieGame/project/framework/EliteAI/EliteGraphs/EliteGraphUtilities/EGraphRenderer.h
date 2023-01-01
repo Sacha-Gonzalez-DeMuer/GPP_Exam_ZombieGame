@@ -1,6 +1,4 @@
 #pragma once
-
-
 #include "..\EGraphNodeTypes.h"
 #include "..\EGraphConnectionTypes.h"
 #include "..\EGridGraph.h"
@@ -25,6 +23,9 @@ namespace Elite
 		void RenderGraph(GridGraph<T_NodeType, T_ConnectionType>* pGraph,IBaseInterface* pInterface, bool renderNodes, bool renderNodeTxt, bool renderConnections, bool renderConnectionsCosts) const;
 
 		template<class T_NodeType, class T_ConnectionType>
+		void RenderNodes(GridGraph<T_NodeType, T_ConnectionType>* pGraph, IBaseInterface* pInterface, std::unordered_set<int>& indices, bool renderNodes, bool renderNodeTxt, bool renderConnections, bool renderConnectionsCosts) const;
+
+		template<class T_NodeType, class T_ConnectionType>
 		void HighlightNodes(GridGraph<T_NodeType, T_ConnectionType>* pGraph, std::vector<T_NodeType*> path, Color col = HIGHLIGHTED_NODE_COLOR) const;
 
 		void SetNumberPrintPrecision(int precision) { m_FloatPrintPrecision = precision; }
@@ -32,6 +33,7 @@ namespace Elite
 	private:
 		void RenderCircleNode(IBaseInterface* pInterface, Vector2 pos, std::string text = "", float radius = DEFAULT_NODE_RADIUS, Elite::Color col = DEFAULT_NODE_COLOR, float depth = 0.0f) const;
 		void RenderRectNode(IBaseInterface* pInterface, Vector2 pos, std::string text = "", float width = DEFAULT_NODE_RADIUS, Elite::Color col = DEFAULT_NODE_COLOR, float depth = 0.0f) const;
+		void RenderRectNode(IBaseInterface* pInterface, InfluenceNode* pNode, std::string text = "", float width = DEFAULT_NODE_RADIUS, float depth = 0.0f) const;
 		void RenderConnection(IBaseInterface* pInterface, GraphConnection* con, Elite::Vector2 toPos, Elite::Vector2 fromPos, std::string text, Elite::Color col = DEFAULT_CONNECTION_COLOR, float depth = 0.0f) const;
 
 		// Get correct color/text depending on the pNode/pConnection type
@@ -77,6 +79,7 @@ namespace Elite
 				if (renderNodeTxt)
 					nodeTxt = GetNodeText(node);
 
+
 				RenderCircleNode(pGraph->GetNodeWorldPos(node),	nodeTxt, DEFAULT_NODE_RADIUS, GetNodeColor(node));
 			}
 		
@@ -120,7 +123,12 @@ namespace Elite
 					if (renderNodeNumbers)
 						nodeTxt = GetNodeText(pGraph->GetNode(idx));
 
-					RenderRectNode(pInterface, cellPos, nodeTxt, float(cellSize), GetNodeColor(pGraph->GetNode(idx)), 0.1f);
+					InfluenceNode* tmp{std::dynamic_pointer_cast<InfluenceNode*>(pGraph->GetNode(idx))};
+					if(tmp)
+						RenderRectNode(pInterface, pGraph->GetNode(idx), nodeTxt, float(cellSize), 0.1f);
+					else
+						RenderRectNode(pInterface, cellPos, nodeTxt, float(cellSize), GetNodeColor(pGraph->GetNode(idx)), 0.1f);
+
 				}
 			}
 		}
@@ -131,6 +139,47 @@ namespace Elite
 			{
 				//Connections
 				for (auto con : pGraph->GetNodeConnections(node->GetIndex()))
+				{
+					std::string conTxt{ };
+					if (renderConnectionsCosts)
+						conTxt = GetConnectionText(con);
+
+					RenderConnection(pInterface, con, pGraph->GetNodeWorldPos(con->GetTo()), pGraph->GetNodeWorldPos(con->GetFrom()), conTxt, GetConnectionColor(con));
+				}
+			}
+		}
+	}
+
+	template<class T_NodeType, class T_ConnectionType>
+	inline void GraphRenderer::RenderNodes(GridGraph<T_NodeType, T_ConnectionType>* pGraph, IBaseInterface* pInterface, std::unordered_set<int>& indices, bool renderNodes, bool renderNodeNumbers, bool renderConnections, bool renderConnectionsCosts) const
+	{
+		if (renderNodes)
+		{
+			for (const auto& idx : indices)
+			{
+				Vector2 cellPos{ pGraph->GetNodeWorldPos(idx) };
+				int cellSize = pGraph->m_CellSize;
+
+				//Node
+				std::string nodeTxt{};
+				if (renderNodeNumbers)
+					nodeTxt = GetNodeText(pGraph->GetNode(idx));
+
+				InfluenceNode* tmp{ nullptr };
+				tmp = dynamic_cast<InfluenceNode*>(pGraph->GetNode(idx));
+				if (tmp)
+					RenderRectNode(pInterface, pGraph->GetNode(idx), nodeTxt, float(cellSize), 0.1f);
+				else
+					RenderRectNode(pInterface, cellPos, nodeTxt, float(cellSize), GetNodeColor(pGraph->GetNode(idx)), 0.1f);
+			}
+		}
+
+		if (renderConnections)
+		{
+			for (const auto& idx : indices)
+			{
+				//Connections
+				for (auto con : pGraph->GetNodeConnections(idx))
 				{
 					std::string conTxt{ };
 					if (renderConnectionsCosts)

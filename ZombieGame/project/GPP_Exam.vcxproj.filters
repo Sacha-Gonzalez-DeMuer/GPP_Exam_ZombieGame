@@ -14,6 +14,7 @@
     <ClCompile Include="framework\EliteInput\EInputManager.cpp" />
     <ClCompile Include="framework\EliteAI\EliteGraphs\EliteGraphUtilities\EGraphRenderer.cpp" />
     <ClCompile Include="framework\EliteAI\EliteGraphs\EGraphConnectionTypes.cpp" />
+    <ClCompile Include="SurvivorAgentMemory.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Plugin.h" />
@@ -58,5 +59,6 @@
     <ClInclude Include="framework\EliteInput\EInputManager.h" />
     <ClInclude Include="framework\EliteRendering\ERenderingTypes.h" />
     <ClInclude Include="framework\EliteAI\EliteGraphs\EliteGraphUtilities\EGraphRenderer.h" />
+    <ClInclude Include="SurvivorAgentMemory.h" />
   </ItemGroup>
 </Project>

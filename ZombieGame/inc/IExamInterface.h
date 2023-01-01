@@ -27,7 +27,6 @@ public:
 	virtual bool Inventory_GetItem(UINT slotId, ItemInfo& item) = 0;
 	virtual UINT Inventory_GetCapacity() const = 0; 
 
-
 	virtual bool Item_GetInfo(EntityInfo entity, ItemInfo& item) = 0;
 	virtual bool Item_Grab(EntityInfo entity, ItemInfo& item) = 0;
 	virtual bool Item_Destroy(EntityInfo entity) = 0;

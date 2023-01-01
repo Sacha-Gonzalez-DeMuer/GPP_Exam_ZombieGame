@@ -56,6 +56,7 @@ namespace Elite
 		Blackboard(Blackboard&& other) = delete;
 		Blackboard& operator=(Blackboard&& other) = delete;
 
+
 		//Add data to the blackboard
 		template<typename T> bool AddData(const std::string& name, T data)
 		{

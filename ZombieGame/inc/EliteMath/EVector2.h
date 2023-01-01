@@ -14,6 +14,19 @@ namespace Elite
 	//Vector 2D
 	struct Vector2
 	{
+		// Define a hash function as a struct member
+		struct Hash
+		{
+			std::size_t operator()(const Vector2& v) const
+			{
+				// You can define the hash function in any way that makes sense for your use case
+				std::size_t h1 = std::hash<float>()(v.x);
+				std::size_t h2 = std::hash<float>()(v.y);
+				return h1 ^ (h2 << 1);
+			}
+		};
+
+
 		//=== Datamembers ===
 		float x = 0.0f;
 		float y = 0.0f;
@@ -96,6 +109,9 @@ namespace Elite
 		inline auto Magnitude() const
 		{ return sqrtf(MagnitudeSquared()); }
 
+		
+
+
 		inline float Normalize()
 		{
 			auto m = Magnitude();
@@ -165,6 +181,13 @@ namespace Elite
 	inline auto Cross(const Vector2& v1, const Vector2& v2)
 	{ return v1.Cross(v2); }
 
+	/*! Get Angle Between 2 vectors*/
+	inline auto AngleBetween(const Elite::Vector2& v1, const Elite::Vector2& v2) {
+		float x = v1.Dot(v2);
+		float y = v1.Cross(v2);
+		return atan2(y, x);
+	}
+
 	inline auto GetAbs(const Vector2& v)
 	{ return v.GetAbs(); }
 
@@ -225,13 +248,8 @@ namespace Elite
 		return atan2f(vector.y, vector.x);
 	}
 
-	/*! Get Angle Between 2 vectors*/
-	inline float AngleBetween(const Elite::Vector2& v1, const Elite::Vector2& v2) {
-		float x = v1.Dot(v2);
-		float y = v1.Cross(v2);
-		return atan2(y, x);
-	}
 
+	
 #pragma endregion //ExtraFunctions
 }
 #endif

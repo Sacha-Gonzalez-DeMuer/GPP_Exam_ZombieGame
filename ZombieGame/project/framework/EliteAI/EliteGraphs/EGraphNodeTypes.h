@@ -100,12 +100,16 @@ namespace Elite
 	{
 	public:
 		InfluenceNode(int index, Elite::Vector2 pos = { 0,0 }, float influence = 0.f)
-			: GraphNode2D(index, pos), m_Influence(influence) {}
+			: GraphNode2D(index, pos), m_Influence(influence), m_Scanned{ false } {}
 
-		float GetInfluence() const { return m_Influence; }
-		void SetInfluence(float influence) { m_Influence = influence; }
+		float GetInfluence() const { return m_Influence; };
+		void SetInfluence(float influence) { m_Influence = influence; };
+
+		bool GetScanned() const { return m_Scanned; };
+		void SetScanned(bool scanned) { m_Scanned = scanned; };
 
 	private:
 		float m_Influence;
+		bool m_Scanned;
 	};
 }

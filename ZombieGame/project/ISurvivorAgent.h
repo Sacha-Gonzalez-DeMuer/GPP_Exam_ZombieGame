@@ -3,6 +3,7 @@
 #include "framework\EliteAI\EliteGraphs\EGraph2D.h"
 #include "framework\EliteAI\EliteGraphs\EGridGraph.h"
 #include "framework\EliteAI\EliteGraphs\EInfluenceMap.h"
+#include "SurvivorAgentMemory.h"
 #include <set>
 
 class IExamInterface;
@@ -13,7 +14,6 @@ using InfluenceGrid = Elite::GridGraph<Elite::InfluenceNode, Elite::GraphConnect
 class ISurvivorAgent
 {
 public:
-
 	ISurvivorAgent(IExamInterface* pInterface, Elite::InfluenceMap<InfluenceGrid>* pInfluenceMap);
 	ISurvivorAgent(const ISurvivorAgent* other) = delete;
 	ISurvivorAgent(ISurvivorAgent&& other) = delete;
@@ -58,6 +58,9 @@ private:
 	std::shared_ptr<ISteeringBehavior> m_pLookAt;
 	std::shared_ptr<ISteeringBehavior> m_pFlee;
 	void InitializeSteering();
+
+	//Memory
+	SurvivorAgentMemory* m_pMemory;
 
 	//Inventory
 	Inventory* m_pInventory;

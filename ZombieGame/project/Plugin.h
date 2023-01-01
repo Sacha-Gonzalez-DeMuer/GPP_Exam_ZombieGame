@@ -38,6 +38,7 @@ private:
 	ISurvivorAgent* m_pSurvivorAgent{nullptr};
 	Elite::InfluenceMap<InfluenceGrid>* m_pInfluenceMap{ nullptr };
 	Elite::GraphRenderer* m_pGraphRenderer{ nullptr };
+	std::unordered_set<int> GetVisibleNodes() const;
 
 	Elite::Vector2 m_Target = {};
 	bool m_CanRun = false; //Demo purpose

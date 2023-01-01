@@ -22,10 +22,26 @@ namespace Elite
 			Vector2(pos.x + width / 2.0f, pos.y - width / 2.0f)
 		};
 
-		//DEBUGRENDERER2D->DrawSolidPolygon(&verts[0], 4, col, depth);
 		pInterface->Draw_SolidPolygon(&verts[0], 4, { col.r, col.g, col.b }, depth);
-		const auto stringOffset = Vector2{ -0.5f, 1.f };
-		//DEBUGRENDERER2D->DrawString(pos + stringOffset, text.c_str());
+
+	}
+
+	void GraphRenderer::RenderRectNode(IBaseInterface* pInterface, InfluenceNode* pNode, std::string text, float width, float depth) const
+	{
+		const Vector2 verts[4]
+		{
+			Vector2(pNode->GetPosition().x - width / 2.0f, pNode->GetPosition().y - width / 2.0f),
+			Vector2(pNode->GetPosition().x - width / 2.0f, pNode->GetPosition().y + width / 2.0f),
+			Vector2(pNode->GetPosition().x + width / 2.0f, pNode->GetPosition().y + width / 2.0f),
+			Vector2(pNode->GetPosition().x + width / 2.0f, pNode->GetPosition().y - width / 2.0f)
+		};
+
+		if (pNode->GetScanned())
+			pInterface->Draw_Polygon(&verts[0], 4, { 1,1,1 }, depth - .1f);
+
+		pInterface->Draw_SolidPolygon(&verts[0], 4, { pNode->GetColor().r, pNode->GetColor().g, pNode->GetColor().b}, depth);
+
+
 	}
 
 	

@@ -9,6 +9,7 @@
 #include "EIGraph.h"
 #include "EGraphConnectionTypes.h"
 #include "EGraphNodeTypes.h"
+#include <unordered_set>
 
 namespace Elite
 {
@@ -42,6 +43,7 @@ namespace Elite
 		Vector2 GetNodeWorldPos(int idx) const override;
 
 		int GetNodeIdxAtWorldPos(const Elite::Vector2& pos) const override;
+		inline std::unordered_set<int> GridGraph<T_NodeType, T_ConnectionType>::GetNodeIndicesInRadius(const Elite::Vector2& pos, float radius) const;
 
 		void AddConnectionsToAdjacentCells(int col, int row);
 		void AddConnectionsToAdjacentCells(int idx);
@@ -65,8 +67,10 @@ namespace Elite
 		void AddConnectionsInDirections(int idx, int col, int row, std::vector<Vector2> directions);
 
 		float CalculateConnectionCost(int fromIdx, int toIdx) const;
-	
+
+		void GetNodesInRadiusRecursive(T_NodeType* node, std::unordered_set<int>& idxCache, float radius, const Vector2& center) const;
 		friend class GraphRenderer;
+
 	};
 
 	template<class T_NodeType, class T_ConnectionType>
@@ -283,4 +287,51 @@ namespace Elite
 
 		return GetIndex(c, r);
 	}
+
+	template<class T_NodeType, class T_ConnectionType>
+	void GridGraph<T_NodeType, T_ConnectionType>::GetNodesInRadiusRecursive(T_NodeType* node, std::unordered_set<int>& idxCache, float radius, const Vector2& center) const
+	{
+		// Check if the current node is within the specified radius of the center point
+		if (node->GetPosition().DistanceSquared(center) > radius * radius || idxCache.count(node->GetIndex() == 0))
+		{
+			return;
+		}
+
+		// Add the current node to the cache
+		idxCache.insert(node->GetIndex());
+
+		// Recursively process the child nodes
+		for (const auto& connection : GetConnections(node->GetIndex()))
+		{
+			// Check if the child node has already been processed
+			if (idxCache.count(connection->GetTo()) > 0)
+			{
+				continue;
+			}
+
+			auto childNode{ GetNode(connection->GetTo()) };
+			GetNodesInRadiusRecursive(childNode, idxCache, radius, center);
+		}
+	}
+
+	template<class T_NodeType, class T_ConnectionType>
+	inline std::unordered_set<int> GridGraph<T_NodeType, T_ConnectionType>::GetNodeIndicesInRadius(const Elite::Vector2& pos, float radius) const
+	{
+		int idx = GetNodeIdxAtWorldPos(pos);
+		
+		std::unordered_set<int> idxCache{ idx };
+		if (idx == invalid_node_index)
+			return idxCache;
+
+		idxCache.clear();
+
+		const auto& centerNode{ GetNode(idx) };
+
+		GetNodesInRadiusRecursive(centerNode, idxCache, radius, pos);
+
+		return idxCache;
+	}
+
+	
 }
+

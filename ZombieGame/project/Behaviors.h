@@ -15,6 +15,7 @@
 #include "framework/EliteMath/EVector2.h"
 #include "Inventory.h"
 #include "ExtendedStructs.h"
+#include "SurvivorAgentMemory.h"
 #include <memory>
 
 class IBaseInterface;
@@ -87,11 +88,19 @@ namespace BT_Functions
 	Elite::InfluenceMap<InfluenceGrid>* GetInfluenceMap(Elite::Blackboard* pBlackboard)
 	{
 		Elite::InfluenceMap<InfluenceGrid>* influenceMap{};
-		if (!pBlackboard->GetData("InfluenceMap", influenceMap)) {
-			return false;
-		}
+		if (!pBlackboard->GetData("InfluenceMap", influenceMap))
+			return nullptr;
 
 		return influenceMap;
+	}
+
+	SurvivorAgentMemory* GetMemory(Elite::Blackboard* pBlackboard)
+	{
+		SurvivorAgentMemory* pMemory{};
+		if (!pBlackboard->GetData("Memory", pMemory))
+			return nullptr;
+
+		return pMemory;
 	}
 }
 
@@ -102,6 +111,7 @@ namespace BT_Actions
 	using namespace BT_Functions;
 #define FAILURE Elite::BehaviorState::Failure
 #define SUCCESS Elite::BehaviorState::Success
+#define RUNNING Elite::BehaviorState::Running
 
 	Elite::BehaviorState ChangeToWander(Elite::Blackboard* pBlackboard)
 	{
@@ -143,6 +153,42 @@ namespace BT_Actions
 		return SUCCESS; 
 	}
 
+	Elite::BehaviorState GoToClosestKnownItem(Elite::Blackboard* pBlackboard)
+	{
+		std::cout << "going to closest Item\n";
+		auto pMemory{ GetMemory(pBlackboard) };
+		if (!pMemory)
+			return FAILURE;
+
+		IExamInterface* pInterface{ GetInterface(pBlackboard) };
+		if (!pInterface)
+			return FAILURE;
+
+		ISurvivorAgent* pSurvivor{ GetSurvivor(pBlackboard) };
+		if (!pSurvivor)
+			return FAILURE;
+
+		auto& items{ pMemory->GetSeenItems() };
+		Elite::Vector2 closestItem{ FLT_MAX, FLT_MAX };
+
+		auto agentInfo{ pInterface->Agent_GetInfo() };
+
+		for (auto& item : items)
+		{
+			if (agentInfo.Position.DistanceSquared(item) < agentInfo.Position.DistanceSquared(closestItem))
+				closestItem = item;
+		}
+
+		if (closestItem.x == FLT_MAX || closestItem.y == FLT_MAX)
+			return FAILURE;
+
+		pSurvivor->SetToSeek(closestItem);
+		if (agentInfo.Position.DistanceSquared(closestItem) > agentInfo.GrabRange * agentInfo.GrabRange)
+			return RUNNING;
+
+		return SUCCESS;
+	}
+
 	Elite::BehaviorState GoToClosestHouse(Elite::Blackboard* pBlackboard)
 	{
 		auto housesInFOV{ GetHousesInFOV(pBlackboard) };
@@ -180,12 +226,15 @@ namespace BT_Actions
 		if (!pInventory)
 			return FAILURE;
 
-
 		ItemInfo item;
 		for (const auto& entity : *pEntities)
 		{
 			if (pInventory->GrabItem(*entity))
-				return SUCCESS;
+			{
+				auto pMemory{ GetMemory(pBlackboard) };
+				pMemory->OnPickUpItem(entity);
+ 				return SUCCESS;
+			}
 		}
 
 		return FAILURE;
@@ -273,6 +322,33 @@ namespace BT_Actions
 		return SUCCESS;
 	}
 
+	Elite::BehaviorState TurnAround(Elite::Blackboard* pBlackboard)
+	{
+		auto pSurvivor{ GetSurvivor(pBlackboard) };
+		if (!pSurvivor)
+			return FAILURE;
+
+		auto pInterface{ GetInterface(pBlackboard) };
+		if (!pInterface)
+			return FAILURE;
+
+
+		Elite::Vector2 agentPos{ pInterface->Agent_GetInfo().Position };
+		EAgentInfo eAgentInfo = pInterface->Agent_GetInfo();
+		const Elite::Vector2 agentForward{ eAgentInfo.GetForward() };
+
+		pSurvivor->SetToLookAround();
+
+		const float angleBetween{ Elite::ToDegrees(atan2(agentForward.Dot(-agentForward), agentForward.Cross(-agentForward))) };
+		constexpr float errorMargin{ 2.f };
+		
+	}
+
+	Elite::BehaviorState PrintTest(Elite::Blackboard* pBlackboard)
+	{
+		std::cout << "TESTING BEHAVIOR\n";
+		return SUCCESS;
+	}
 }
 
 //Conditions
@@ -350,10 +426,31 @@ namespace BT_Conditions
 		return pInventory->HasWeapon();
 	}
 
-	bool HasTarget(Elite::Blackboard* (pBlackboard))
+	bool HasTarget(Elite::Blackboard* pBlackboard)
 	{
 		std::shared_ptr<Elite::Vector2> t;
 		return GetTarget(pBlackboard, t);
+	}
+
+	bool AlignedWithTarget(Elite::Blackboard* pBlackboard)
+	{
+		std::shared_ptr<Elite::Vector2> t;
+		if(!GetTarget(pBlackboard, t))
+			return false;
+
+		auto pInterface{ GetInterface(pBlackboard) };
+		if (!pInterface)
+			return false;
+		
+		Elite::Vector2 agentPos{ pInterface->Agent_GetInfo().Position };
+		EAgentInfo eAgentInfo = pInterface->Agent_GetInfo();
+		const Elite::Vector2 agentForward{ eAgentInfo.GetForward() };
+		const Elite::Vector2 toTarget{ (*t - agentPos).GetNormalized() };
+
+		const float angleBetween{ Elite::ToDegrees(atan2(agentForward.Dot(toTarget), agentForward.Cross(toTarget)) ) };
+		constexpr float errorMargin{ 2.f };
+		std::cout << "AngleBetween: " << angleBetween << "\n";
+		return angleBetween < errorMargin;
 	}
 
 	bool IsHouseInFOV(Elite::Blackboard* pBlackboard)
@@ -386,21 +483,37 @@ namespace BT_Conditions
 		if (!pInterface)
 			return false;
 
-
 		//check influence on neighboring squares 
 		const auto& node = pInfluenceMap->GetNodeAtWorldPos(pInterface->Agent_GetInfo().Position);
 
+		float scannedCount{ 0 };
+
 		for (const auto& connection : pInfluenceMap->GetConnections(node->GetIndex()))
 		{
-			if (pInfluenceMap->GetNode(connection->GetTo())->GetInfluence() < 50)
-				return false;
+			if (pInfluenceMap->GetNode(connection->GetTo())->GetScanned())
+				++scannedCount;
 		}
 
-		return true;
+		return scannedCount > pInfluenceMap->GetConnections(node->GetIndex()).size() / 1.7f;
+	}
+
+	bool HasSeenItem(Elite::Blackboard* pBlackboard)
+	{
+		const auto& pMemory{ GetMemory(pBlackboard) };
+		if (!pMemory)
+			return false;
+
+		return pMemory->HasSeenItems();
+	}
+
+	bool WasBitten(Elite::Blackboard* pBlackboard)
+	{
+		const auto& pInterface{ GetInterface(pBlackboard) };
+		if (!pInterface)
+			return false;
+
+		return pInterface->Agent_GetInfo().WasBitten;
 	}
 }
-
-
-
 
 #endif

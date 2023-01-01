@@ -189,6 +189,14 @@ namespace Elite
 		scale = scale < 1.f ? scale : 1.f;
 		return v * scale;
 	}
+
+	/*! Get Angle Between 2 vectors*/
+	inline float AngleBetween(const Elite::Vector2& v1, const Elite::Vector2& v2) {
+		float x = v1.Dot(v2);
+		float y = v1.Cross(v2);
+		return atan2(y, x);
+	}
+
 #pragma endregion //GlobalVectorFunctions
 
 #pragma region ExtraFunctions
@@ -202,6 +210,7 @@ namespace Elite
 		return{ randomFloat(min, max),randomFloat(min, max) };
 	}
 
+	
 	/* Get orientation from an a velocity vector
 	-- [Deprecated] -- Use VectorToAngle instead*/
 	[[deprecated("Use VectorToAngle instead")]]
@@ -225,12 +234,7 @@ namespace Elite
 		return atan2f(vector.y, vector.x);
 	}
 
-	/*! Get Angle Between 2 vectors*/
-	inline float AngleBetween(const Elite::Vector2& v1, const Elite::Vector2& v2) {
-		float x = v1.Dot(v2);
-		float y = v1.Cross(v2);
-		return atan2(y, x);
-	}
+
 
 #pragma endregion //ExtraFunctions
 }

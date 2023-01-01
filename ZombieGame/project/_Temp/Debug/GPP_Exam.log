@@ -1,6 +1,2 @@
-﻿  EGraphRenderer.cpp
-  ISurvivorAgent.cpp
-  Plugin.cpp
-  Generating Code...
-     Creating library C:\Users\sacha\OneDrive\Documents\College\Howest\Gameplay-Programming\GPP_Exam\ZombieGame\project\..\_DEMO_DEBUG\GPP_Plugin_d.lib and object C:\Users\sacha\OneDrive\Documents\College\Howest\Gameplay-Programming\GPP_Exam\ZombieGame\project\..\_DEMO_DEBUG\GPP_Plugin_d.exp
+﻿  ISurvivorAgent.cpp
   GPP_Exam.vcxproj -> C:\Users\sacha\OneDrive\Documents\College\Howest\Gameplay-Programming\GPP_Exam\ZombieGame\_DEMO_DEBUG\GPP_Plugin_d.dll

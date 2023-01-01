@@ -32,7 +32,7 @@ namespace Elite
 		IBehavior() = default;
 		virtual ~IBehavior() = default;
 		virtual BehaviorState Execute(Blackboard* pBlackBoard) = 0;
-
+		BehaviorState GetCurrentState() const { return m_CurrentState; };
 	protected:
 		BehaviorState m_CurrentState = BehaviorState::Failure;
 	};
@@ -96,6 +96,36 @@ namespace Elite
 		unsigned int m_CurrentBehaviorIndex = 0;
 	};
 #pragma endregion
+
+	//-----------------------------------------------------------------
+	// DECORATORS (IBehavior)
+	//-----------------------------------------------------------------
+
+	class NotDecorator : public IBehavior
+	{
+	public:
+		explicit NotDecorator(IBehavior* pChild) : m_pChild(pChild) {}
+		virtual BehaviorState Execute(Blackboard* pBlackBoard) override
+		{
+			// Execute the child behavior
+			m_pChild->Execute(pBlackBoard);
+
+			// Invert the child's output and return it
+			if (m_pChild->GetCurrentState() == BehaviorState::Success)
+			{
+				m_CurrentState = BehaviorState::Failure;
+			}
+			else
+			{
+				m_CurrentState = BehaviorState::Success;
+			}
+
+			return m_CurrentState;
+		}
+
+	private:
+		IBehavior* m_pChild = nullptr;
+	};
 
 	//-----------------------------------------------------------------
 	// BEHAVIOR TREE CONDITIONAL (IBehavior)
