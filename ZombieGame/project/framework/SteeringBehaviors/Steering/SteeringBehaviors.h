@@ -93,8 +93,8 @@ public:
 	void SetWanderOffset(float offset);
 
 protected:
-	float m_OffsetDistance = 6.f;
-	float m_Radius = 20.f;
+	float m_OffsetDistance = 10.f;
+	float m_Radius = 10.f;
 	float m_MaxAngleChange = Elite::ToRadians(45.f);
 	float m_WanderAngle = 0.f;
 };

@@ -6,10 +6,19 @@
 #include "SurvivorAgentMemory.h"
 #include <set>
 
+class PrioritySteering;
 class IExamInterface;
 class ISteeringBehavior;
 class Inventory;
 using InfluenceGrid = Elite::GridGraph<Elite::InfluenceNode, Elite::GraphConnection>;
+
+enum class SurvivorState
+{
+	EXPLORING,
+	LOOTING,
+	DEFENSIVE,
+	AGGRO,
+};
 
 class ISurvivorAgent
 {
@@ -25,14 +34,20 @@ public:
 	void Update(float deltaTime, IExamInterface* pInterface, SteeringPlugin_Output& steering);
 	void Render(float deltaTime, IExamInterface* pInterface);
 
-	//Steering methods
 	void SetSteeringBehavior(ISteeringBehavior* pBehavior) {}
 	void SetToWander();   
-	void SetToSeek(Elite::Vector2 target);
-	void SetLookAtTarget(std::shared_ptr<Elite::Vector2> target);
+	void SetToSeek(const Elite::Vector2& target);
+	void SetTarget(const Elite::Vector2& target);
 	void SetToLookAt();
+	void SetToLookAt(const Elite::Vector2& target);
 	void SetToLookAround();
 	void SetToFlee();
+	void SetToFleeLookingAt();
+	void SetToFleeLookingAt(const Elite::Vector2 target);
+
+	void SetSurvivorState(SurvivorState toState) { m_SurvivorState = toState; };
+
+	std::shared_ptr<Elite::Vector2> GetTarget() const { return m_Target; };
 
 	std::shared_ptr<ISteeringBehavior> GetCurrentSteering() const { return m_pCurrentSteering; };
 
@@ -45,18 +60,23 @@ private:
 	void UpdateObjectsInFOV(IExamInterface* pInterface);
 
 	//DecisionMaking
+	SurvivorState m_SurvivorState{ SurvivorState::EXPLORING };
 	Elite::IDecisionMaking* m_pDecisionMaking{ nullptr };
 	Elite::Blackboard* m_pBlackboard{ nullptr };
 	void InitializeBehaviorTree(IExamInterface* pInterface);
 	Elite::Blackboard* CreateBlackboard(IExamInterface* pAgentInfo);
 
 	//Steering
+	bool m_ForceSteering{ false };
+	SteeringPlugin_Output m_ForcedSteering{};
 	std::shared_ptr<ISteeringBehavior> m_pCurrentSteering{ nullptr };
 	std::shared_ptr<ISteeringBehavior> m_pWander;
 	std::shared_ptr<ISteeringBehavior> m_pSeek;
 	std::shared_ptr<ISteeringBehavior> m_pLookAround;
 	std::shared_ptr<ISteeringBehavior> m_pLookAt;
 	std::shared_ptr<ISteeringBehavior> m_pFlee;
+	std::shared_ptr<ISteeringBehavior> m_pFleeLookingAt;
+
 	void InitializeSteering();
 
 	//Memory

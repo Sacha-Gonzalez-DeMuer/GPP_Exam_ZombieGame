@@ -26,8 +26,8 @@ void Plugin::Initialize(IBaseInterface* pInterface, PluginInfo& info)
 
 	m_pInfluenceMap->InitializeGrid({-worldDimension/2.f, -worldDimension/2.f }, colRows, colRows, celSize, false, true);
 	m_pInfluenceMap->InitializeBuffer();
-	m_pInfluenceMap->SetMomentum(1);
-	m_pInfluenceMap->SetDecay(0);
+	m_pInfluenceMap->SetMomentum(.5f);
+	m_pInfluenceMap->SetDecay(.5f);
 
 	m_pGraphRenderer = new GraphRenderer();
 
@@ -93,60 +93,6 @@ void Plugin::Update(float dt)
 	m_pInfluenceMap->PropagateInfluence(dt, m_pInterface->Agent_GetInfo().Position, m_pInterface->Agent_GetInfo().FOV_Range * 3);
 	m_pInterface->Draw_Circle(m_pInterface->Agent_GetInfo().Position, propagateRadius, {0,1,0});
 
-	if (m_pInterface->Input_IsMouseButtonUp(Elite::InputMouseButton::eLeft))
-	{
-		//Update target based on input
-		Elite::MouseData mouseData = m_pInterface->Input_GetMouseData(Elite::InputType::eMouseButton, Elite::InputMouseButton::eLeft);
-		const Elite::Vector2 pos = Elite::Vector2(static_cast<float>(mouseData.X), static_cast<float>(mouseData.Y));
-		m_Target = m_pInterface->Debug_ConvertScreenToWorld(pos);
-	}
-	else if (m_pInterface->Input_IsKeyboardKeyDown(Elite::eScancode_Space))
-	{
-		m_CanRun = true;
-	}
-	else if (m_pInterface->Input_IsKeyboardKeyDown(Elite::eScancode_Left))
-	{
-		m_AngSpeed -= Elite::ToRadians(10);
-	}
-	else if (m_pInterface->Input_IsKeyboardKeyDown(Elite::eScancode_Right))
-	{
-		m_AngSpeed += Elite::ToRadians(10);
-	}
-	else if (m_pInterface->Input_IsKeyboardKeyDown(Elite::eScancode_G))
-	{
-		m_GrabItem = true;
-	}
-	else if (m_pInterface->Input_IsKeyboardKeyDown(Elite::eScancode_U))
-	{
-		m_UseItem = true;
-	}
-	else if (m_pInterface->Input_IsKeyboardKeyDown(Elite::eScancode_R))
-	{
-		m_RemoveItem = true;
-	}
-	else if (m_pInterface->Input_IsKeyboardKeyUp(Elite::eScancode_Space))
-	{
-		m_CanRun = false;
-	}
-	else if (m_pInterface->Input_IsKeyboardKeyDown(Elite::eScancode_Delete))
-	{
-		m_pInterface->RequestShutdown();
-	}
-	else if (m_pInterface->Input_IsKeyboardKeyDown(Elite::eScancode_KP_Minus))
-	{
-		if (m_InventorySlot > 0)
-			--m_InventorySlot;
-	}
-	else if (m_pInterface->Input_IsKeyboardKeyDown(Elite::eScancode_KP_Plus))
-	{
-		if (m_InventorySlot < 4)
-			++m_InventorySlot;
-	}
-	else if (m_pInterface->Input_IsKeyboardKeyDown(Elite::eScancode_Q))
-	{
-		ItemInfo info = {};
-		m_pInterface->Inventory_GetItem(m_InventorySlot, info);
-	}
 }
 
 //Update

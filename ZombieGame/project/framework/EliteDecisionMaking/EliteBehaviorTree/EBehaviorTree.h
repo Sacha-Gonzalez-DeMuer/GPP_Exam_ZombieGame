@@ -95,37 +95,27 @@ namespace Elite
 	private:
 		unsigned int m_CurrentBehaviorIndex = 0;
 	};
-#pragma endregion
 
-	//-----------------------------------------------------------------
-	// DECORATORS (IBehavior)
-	//-----------------------------------------------------------------
 
-	class NotDecorator : public IBehavior
-	{
+	//--- PARALLEL NODE ---
+	class BehaviorParallel : public IBehavior {
 	public:
-		explicit NotDecorator(IBehavior* pChild) : m_pChild(pChild) {}
-		virtual BehaviorState Execute(Blackboard* pBlackBoard) override
-		{
-			// Execute the child behavior
-			m_pChild->Execute(pBlackBoard);
+		BehaviorParallel(std::vector<IBehavior*> children, size_t minSuccess, size_t minFailure)
+			: m_children(children), m_minSuccess(minSuccess), m_minFailure(minFailure) {}
 
-			// Invert the child's output and return it
-			if (m_pChild->GetCurrentState() == BehaviorState::Success)
-			{
-				m_CurrentState = BehaviorState::Failure;
-			}
-			else
-			{
-				m_CurrentState = BehaviorState::Success;
-			}
+		virtual ~BehaviorParallel() {}
 
-			return m_CurrentState;
-		}
+		virtual BehaviorState Execute(Blackboard* blackboard) override;
 
 	private:
-		IBehavior* m_pChild = nullptr;
+		std::vector<IBehavior*> m_children;
+		size_t m_minSuccess;
+		size_t m_minFailure;
 	};
+
+#pragma endregion
+
+
 
 	//-----------------------------------------------------------------
 	// BEHAVIOR TREE CONDITIONAL (IBehavior)
@@ -151,6 +141,73 @@ namespace Elite
 
 	private:
 		std::function<BehaviorState(Blackboard*)> m_fpAction = nullptr;
+	};
+
+	//template <typename T>
+	//class BehaviorAction : public IBehavior
+	//{
+	//public:
+	//	explicit BehaviorAction(std::function<BehaviorState(Blackboard*, T)> fp) : m_fpAction(fp) {}
+	//	virtual BehaviorState Execute(Blackboard* pBlackBoard, T) override;
+
+	//private:
+	//	std::function<BehaviorState(Blackboard*, T)> m_fpAction = nullptr;
+	//};
+
+
+
+	//-----------------------------------------------------------------
+// DECORATORS (IBehavior)
+//-----------------------------------------------------------------
+
+	class NotDecorator : public BehaviorConditional
+	{
+	public:
+		explicit NotDecorator(std::function<bool(Blackboard*)> fp) : BehaviorConditional(fp) {}
+		virtual BehaviorState Execute(Blackboard* pBlackBoard) override
+		{
+			// Execute the child behavior
+			BehaviorConditional::Execute(pBlackBoard);
+
+			// Invert the child's output and return it
+			if (GetCurrentState() == BehaviorState::Success)
+			{
+				m_CurrentState = BehaviorState::Failure;
+			}
+			else
+			{
+				m_CurrentState = BehaviorState::Success;
+			}
+
+			return m_CurrentState;
+		}
+	};
+
+
+	class BehaviorWhile : public IBehavior
+	{
+	public:
+		BehaviorWhile(IBehavior* conditional, IBehavior* action) : m_pAction(action), m_pConditional(conditional) {}
+		virtual BehaviorState Execute(Blackboard* pBlackBoard) override
+		{
+			if (m_pConditional->Execute(pBlackBoard) == BehaviorState::Success)
+			{
+				if (m_pAction->Execute(pBlackBoard) == BehaviorState::Failure)
+				{
+					return BehaviorState::Failure;
+				}
+				
+				return BehaviorState::Running;
+			}
+			else
+			{
+				return BehaviorState::Success;
+			}
+		}
+
+	private:
+		IBehavior* m_pAction = nullptr;
+		IBehavior* m_pConditional = nullptr;
 	};
 
 	//-----------------------------------------------------------------
@@ -185,5 +242,9 @@ namespace Elite
 		Blackboard* m_pBlackBoard = nullptr;
 		IBehavior* m_pRootBehavior = nullptr;
 	};
+
+
+
+
 }
 #endif

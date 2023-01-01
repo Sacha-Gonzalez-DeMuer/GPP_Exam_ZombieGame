@@ -219,6 +219,7 @@
     <ClInclude Include="framework\EliteMath\FMatrix.h" />
     <ClInclude Include="framework\EliteRendering\ERenderingTypes.h" />
     <ClInclude Include="framework\SteeringBehaviors\SteeringHelpers.h" />
+    <ClInclude Include="framework\SteeringBehaviors\Steering\CombinedSteeringBehaviors.h" />
     <ClInclude Include="framework\SteeringBehaviors\Steering\SteeringBehaviors.h" />
     <ClInclude Include="Inventory.h" />
     <ClInclude Include="ISurvivorAgent.h" />
@@ -247,6 +248,9 @@
     <ClCompile Include="framework\EliteGeometry\EGeometry2DTypes.cpp" />
     <ClCompile Include="framework\EliteInput\EInputManager.cpp" />
     <ClCompile Include="framework\EliteMath\EMatrix2x3.cpp" />
+    <ClCompile Include="framework\SteeringBehaviors\Steering\CombinedSteeringBehaviors.cpp">
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">../../../stdafx.h</PrecompiledHeaderFile>
+    </ClCompile>
     <ClCompile Include="framework\SteeringBehaviors\Steering\SteeringBehaviors.cpp">
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">../../../stdafx.h</PrecompiledHeaderFile>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">../../../stdafx.h</PrecompiledHeaderFile>

@@ -82,6 +82,7 @@ BehaviorState BehaviorPartialSequence::Execute(Blackboard* pBlackBoard)
 	m_CurrentState = BehaviorState::Success;
 	return m_CurrentState;
 }
+
 #pragma endregion
 //-----------------------------------------------------------------
 // BEHAVIOR TREE CONDITIONAL (IBehavior)
@@ -113,4 +114,32 @@ BehaviorState BehaviorAction::Execute(Blackboard* pBlackBoard)
 
 	m_CurrentState = m_fpAction(pBlackBoard);
 	return m_CurrentState;
+}
+
+
+BehaviorState Elite::BehaviorParallel::Execute(Blackboard* blackboard)
+{
+	size_t successCount = 0;
+	size_t failureCount = 0;
+
+	for (auto& child : m_children) {
+		BehaviorState childStatus = child->Execute(blackboard);
+		if (childStatus == BehaviorState::Failure) {
+			return BehaviorState::Failure;
+		}
+		else if (childStatus == BehaviorState::Success) {
+			++successCount;
+			if (successCount >= m_minSuccess) {
+				return BehaviorState::Success;
+			}
+		}
+		else if (childStatus == BehaviorState::Running) {
+			++failureCount;
+			if (failureCount >= m_minFailure) {
+				return BehaviorState::Failure;
+			}
+		}
+	}
+
+	return BehaviorState::Running;
 }
