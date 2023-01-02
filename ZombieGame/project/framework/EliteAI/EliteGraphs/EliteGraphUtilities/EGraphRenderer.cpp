@@ -37,11 +37,9 @@ namespace Elite
 		};
 
 		if (pNode->GetScanned())
-			pInterface->Draw_Polygon(&verts[0], 4, { 1,1,1 }, depth - .1f);
-
+			pInterface->Draw_Point(pNode->GetPosition(), width, {1,1,1}, depth - .1f);
+		
 		pInterface->Draw_SolidPolygon(&verts[0], 4, { pNode->GetColor().r, pNode->GetColor().g, pNode->GetColor().b}, depth);
-
-
 	}
 
 	

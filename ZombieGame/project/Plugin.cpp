@@ -18,22 +18,8 @@ void Plugin::Initialize(IBaseInterface* pInterface, PluginInfo& info)
 	m_pInterface = static_cast<IExamInterface*>(pInterface);
 
 
-	//Initialize InfluenceMap
-	m_pInfluenceMap = new Elite::InfluenceMap<InfluenceGrid>(false);
-	float worldDimension{ max(m_pInterface->World_GetInfo().Dimensions.x, m_pInterface->World_GetInfo().Dimensions.y)};
-	int celSize{ static_cast<int>(m_pInterface->Agent_GetInfo().FOV_Range / 2.5f) };
-	int colRows{ static_cast<int>(worldDimension) / celSize };
-
-	m_pInfluenceMap->InitializeGrid({-worldDimension/2.f, -worldDimension/2.f }, colRows, colRows, celSize, false, true);
-	m_pInfluenceMap->InitializeBuffer();
-	m_pInfluenceMap->SetMomentum(.5f);
-	m_pInfluenceMap->SetDecay(.5f);
-
-	m_pGraphRenderer = new GraphRenderer();
-
-
 	//Initialize Survivor
-	m_pSurvivorAgent = new ISurvivorAgent(m_pInterface, m_pInfluenceMap);
+	m_pSurvivorAgent = new ISurvivorAgent(m_pInterface);
 
 	//Bit information about the plugin
 	//Please fill this in!!
@@ -88,11 +74,6 @@ void Plugin::Update(float dt)
 		const Elite::Vector2 pos = Elite::Vector2(static_cast<float>(mouseData.X), static_cast<float>(mouseData.Y));
 		
 	}
-
-	const float propagateRadius{ m_pInterface->Agent_GetInfo().FOV_Range * 3 };
-	m_pInfluenceMap->PropagateInfluence(dt, m_pInterface->Agent_GetInfo().Position, m_pInterface->Agent_GetInfo().FOV_Range * 3);
-	m_pInterface->Draw_Circle(m_pInterface->Agent_GetInfo().Position, propagateRadius, {0,1,0});
-
 }
 
 //Update
@@ -161,11 +142,11 @@ SteeringPlugin_Output Plugin::UpdateSteering(float dt)
 	}
 
 	//Simple Seek Behaviour (towards Target)
-	steering.LinearVelocity = nextTargetPos - agentInfo.Position; //Desired Velocity
+	steering.LinearVelocity = nextTargetPos - agentInfo.Location; //Desired Velocity
 	steering.LinearVelocity.Normalize(); //Normalize Desired Velocity
 	steering.LinearVelocity *= agentInfo.MaxLinearSpeed; //Rescale to Max Speed
 
-	if (Distance(nextTargetPos, agentInfo.Position) < 2.f)
+	if (Distance(nextTargetPos, agentInfo.Location) < 2.f)
 	{
 		steering.LinearVelocity = Elite::ZeroVector2;
 	}
@@ -188,14 +169,7 @@ SteeringPlugin_Output Plugin::UpdateSteering(float dt)
 //This function should only be used for rendering debug element5s
 void Plugin::Render(float dt) const
 {
-	m_pInfluenceMap->SetNodeColorsBasedOnInfluence();
 	m_pSurvivorAgent->Render(dt, m_pInterface);
-
-	//This Render function should only contain calls to Interface->Draw_... functions
-	m_pInterface->Draw_SolidCircle(m_Target, .7f, { 0,0 }, { 1, 0, 0 });
-
-	auto visibleNodes{ GetVisibleNodes() };
-	m_pGraphRenderer->RenderNodes(m_pInfluenceMap, m_pInterface, visibleNodes, true, false, false, false);
 }
 
 
@@ -237,8 +211,5 @@ vector<EntityInfo> Plugin::GetEntitiesInFOV() const
 	return vEntitiesInFOV;
 }
 
-std::unordered_set<int> Plugin::GetVisibleNodes() const
-{
-	return m_pInfluenceMap->GetNodeIndicesInRadius(m_pInterface->Agent_GetInfo().Position, m_pInterface->Agent_GetInfo().FOV_Range * 5);
-}
+
 

@@ -3,7 +3,6 @@
 #include "EGraphNodeTypes.h"
 #include "EGraphConnectionTypes.h"
 #include <unordered_set>
-
 namespace Elite
 {
 	template<class T_GraphType>

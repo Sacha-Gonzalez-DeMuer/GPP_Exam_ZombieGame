@@ -3,8 +3,6 @@
   <ItemGroup>
     <ClCompile Include="Plugin.cpp" />
     <ClCompile Include="stdafx.cpp" />
-    <ClCompile Include="framework\EliteDecisionMaking\EliteBehaviorTree\EBehaviorTree.cpp" />
-    <ClCompile Include="framework\EliteDecisionMaking\EliteFiniteStateMachine\EFiniteStateMachine.cpp" />
     <ClCompile Include="framework\SteeringBehaviors\Steering\SteeringBehaviors.cpp" />
     <ClCompile Include="framework\EliteMath\EMatrix2x3.cpp" />
     <ClCompile Include="ISurvivorAgent.cpp" />
@@ -16,14 +14,12 @@
     <ClCompile Include="framework\EliteAI\EliteGraphs\EGraphConnectionTypes.cpp" />
     <ClCompile Include="SurvivorAgentMemory.cpp" />
     <ClCompile Include="framework\SteeringBehaviors\Steering\CombinedSteeringBehaviors.cpp" />
+    <ClCompile Include="EBehaviorTree.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Plugin.h" />
     <ClInclude Include="stdafx.h" />
-    <ClInclude Include="framework\EliteDecisionMaking\EliteBehaviorTree\EBehaviorTree.h" />
-    <ClInclude Include="framework\EliteDecisionMaking\EliteFiniteStateMachine\EFiniteStateMachine.h" />
     <ClInclude Include="framework\EliteDecisionMaking\EDecisionMaking.h" />
-    <ClInclude Include="framework\EliteData\EBlackboard.h" />
     <ClInclude Include="framework\EliteDecisionMaking\EliteBehaviorTree\Behaviors.h" />
     <ClInclude Include="framework\SteeringBehaviors\Steering\SteeringBehaviors.h" />
     <ClInclude Include="framework\SteeringBehaviors\SteeringHelpers.h" />
@@ -62,5 +58,12 @@
     <ClInclude Include="framework\EliteAI\EliteGraphs\EliteGraphUtilities\EGraphRenderer.h" />
     <ClInclude Include="SurvivorAgentMemory.h" />
     <ClInclude Include="framework\SteeringBehaviors\Steering\CombinedSteeringBehaviors.h" />
+    <ClInclude Include="framework\EliteData\EBlackboard.h" />
+    <ClInclude Include="EBehaviorTree.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="framework">
+      <UniqueIdentifier>{eb5cac6f-de3b-43b7-b30e-aea9604c15cd}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
 </Project>

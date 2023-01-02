@@ -3,9 +3,6 @@
 #include "Exam_HelperStructs.h"
 #include "ExtendedStructs.h"
 
-#include "framework\EliteAI\EliteGraphs\EInfluenceMap.h"
-#include "framework\EliteAI\EliteGraphs\EGraph2D.h"
-#include "framework\EliteAI\EliteGraphs\EGridGraph.h"
 
 class IBaseInterface;
 class IExamInterface;
@@ -27,7 +24,6 @@ public:
 	SteeringPlugin_Output UpdateSteering(float dt) override;
 	void Render(float dt) const override;
 
-	using InfluenceGrid = Elite::GridGraph<Elite::InfluenceNode, Elite::GraphConnection>;
 
 private:
 	//Interface, used to request data from/perform actions with the AI Framework
@@ -36,9 +32,6 @@ private:
 	std::vector<EntityInfo> GetEntitiesInFOV() const;
 
 	ISurvivorAgent* m_pSurvivorAgent{nullptr};
-	Elite::InfluenceMap<InfluenceGrid>* m_pInfluenceMap{ nullptr };
-	Elite::GraphRenderer* m_pGraphRenderer{ nullptr };
-	std::unordered_set<int> GetVisibleNodes() const;
 
 	Elite::Vector2 m_Target = {};
 	bool m_CanRun = false; //Demo purpose

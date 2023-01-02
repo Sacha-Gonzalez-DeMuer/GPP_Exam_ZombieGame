@@ -23,7 +23,7 @@ enum class SurvivorState
 class ISurvivorAgent
 {
 public:
-	ISurvivorAgent(IExamInterface* pInterface, Elite::InfluenceMap<InfluenceGrid>* pInfluenceMap);
+	ISurvivorAgent(IExamInterface* pInterface);
 	ISurvivorAgent(const ISurvivorAgent* other) = delete;
 	ISurvivorAgent(ISurvivorAgent&& other) = delete;
 	ISurvivorAgent& operator=(const ISurvivorAgent& other);
@@ -35,7 +35,7 @@ public:
 	void Render(float deltaTime, IExamInterface* pInterface);
 
 	void SetSteeringBehavior(ISteeringBehavior* pBehavior) {}
-	void SetToWander();   
+	void SetToWander(bool autoOrient, bool sprint);   
 	void SetToSeek(const Elite::Vector2& target);
 	void SetTarget(const Elite::Vector2& target);
 	void SetToLookAt();
@@ -43,20 +43,27 @@ public:
 	void SetToLookAround();
 	void SetToFlee();
 	void SetToFleeLookingAt();
-	void SetToFleeLookingAt(const Elite::Vector2 target);
+	void SetToFleeLookingAt(const Elite::Vector2& target);
+	void SetToExplore();
 
 	void SetSurvivorState(SurvivorState toState) { m_SurvivorState = toState; };
 
 	std::shared_ptr<Elite::Vector2> GetTarget() const { return m_Target; };
 
+
 	std::shared_ptr<ISteeringBehavior> GetCurrentSteering() const { return m_pCurrentSteering; };
 
 	UINT GetInventorySlot() const { return m_InventorySlot; };
+
+protected:
+	std::vector<EntityInfo*> m_pEntitiesInFOV{};
+	std::vector<HouseInfo*> m_pHousesInFOV{};
+
+	HouseInfo* GetNearestHouse(const Elite::Vector2& fromPos) const;
+
 private:
 	//Data
 	//IExamInterface* m_pInterface{ nullptr };
-	std::vector<EntityInfo*> m_pEntitiesInFOV{};
-	std::vector<HouseInfo*> m_pHousesInFOV{};
 	void UpdateObjectsInFOV(IExamInterface* pInterface);
 
 	//DecisionMaking
@@ -76,6 +83,7 @@ private:
 	std::shared_ptr<ISteeringBehavior> m_pLookAt;
 	std::shared_ptr<ISteeringBehavior> m_pFlee;
 	std::shared_ptr<ISteeringBehavior> m_pFleeLookingAt;
+	std::shared_ptr<ISteeringBehavior> m_pExplore;
 
 	void InitializeSteering();
 
@@ -84,10 +92,6 @@ private:
 
 	//Inventory
 	Inventory* m_pInventory;
-
-	//InfluenceMap
-	Elite::InfluenceMap<InfluenceGrid>* m_pInfluenceMap;
-	void UpdateSeenCells(IExamInterface* pInterface) const;
 
 	std::shared_ptr<Elite::Vector2> m_Target{};
 	UINT m_InventorySlot = 0;

@@ -183,6 +183,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Behaviors.h" />
+    <ClInclude Include="EBehaviorTree.h" />
     <ClInclude Include="ExtendedStructs.h" />
     <ClInclude Include="framework\EliteAI\EliteGraphs\EGraph2D.h" />
     <ClInclude Include="framework\EliteAI\EliteGraphs\EGraphConnectionTypes.h" />
@@ -201,8 +202,6 @@
     <ClInclude Include="framework\EliteDecisionMaking\EDecisionMaking.h" />
     <ClInclude Include="framework\EliteDecisionMaking\EInfluenceMap.h" />
     <ClInclude Include="framework\EliteDecisionMaking\EliteBehaviorTree\Behaviors.h" />
-    <ClInclude Include="framework\EliteDecisionMaking\EliteBehaviorTree\EBehaviorTree.h" />
-    <ClInclude Include="framework\EliteDecisionMaking\EliteFiniteStateMachine\EFiniteStateMachine.h" />
     <ClInclude Include="framework\EliteGeometry\EGeometry.h" />
     <ClInclude Include="framework\EliteGeometry\EGeometry2DTypes.h" />
     <ClInclude Include="framework\EliteGeometry\EGeometry2DUtilities.h" />
@@ -228,6 +227,7 @@
     <ClInclude Include="SurvivorAgentMemory.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="EBehaviorTree.cpp" />
     <ClCompile Include="framework\EliteAI\EliteGraphs\EGraphConnectionTypes.cpp">
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">../../../stdafx.h</PrecompiledHeaderFile>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">../../../stdafx.h</PrecompiledHeaderFile>
@@ -240,16 +240,12 @@
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">../../../../stdafx.h</PrecompiledHeaderFile>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">../../../../stdafx.h</PrecompiledHeaderFile>
     </ClCompile>
-    <ClCompile Include="framework\EliteDecisionMaking\EliteBehaviorTree\EBehaviorTree.cpp">
-      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">../../../stdafx.h</PrecompiledHeaderFile>
-      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">../../../stdafx.h</PrecompiledHeaderFile>
-    </ClCompile>
-    <ClCompile Include="framework\EliteDecisionMaking\EliteFiniteStateMachine\EFiniteStateMachine.cpp" />
     <ClCompile Include="framework\EliteGeometry\EGeometry2DTypes.cpp" />
     <ClCompile Include="framework\EliteInput\EInputManager.cpp" />
     <ClCompile Include="framework\EliteMath\EMatrix2x3.cpp" />
     <ClCompile Include="framework\SteeringBehaviors\Steering\CombinedSteeringBehaviors.cpp">
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">../../../stdafx.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">../../../stdafx.h</PrecompiledHeaderFile>
     </ClCompile>
     <ClCompile Include="framework\SteeringBehaviors\Steering\SteeringBehaviors.cpp">
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">../../../stdafx.h</PrecompiledHeaderFile>

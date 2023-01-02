@@ -96,7 +96,7 @@ namespace Elite
 		int m_LineIdx;
 	};
 
-	class InfluenceNode final : public Elite::GraphNode2D
+	class InfluenceNode : public Elite::GraphNode2D
 	{
 	public:
 		InfluenceNode(int index, Elite::Vector2 pos = { 0,0 }, float influence = 0.f)
@@ -111,5 +111,14 @@ namespace Elite
 	private:
 		float m_Influence;
 		bool m_Scanned;
+	};
+
+	class WorldNode final : public Elite::InfluenceNode
+	{
+	public:
+		WorldNode(int index, Elite::Vector2 pos = { 0,0 }, float influence = 0.f)
+			: Elite::InfluenceNode(index, pos, influence) {}
+
+
 	};
 }

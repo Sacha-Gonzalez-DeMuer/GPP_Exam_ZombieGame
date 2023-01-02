@@ -9,7 +9,7 @@
 // Includes & Forward Declarations
 //-----------------------------------------------------------------
 #include "framework/EliteMath/EMath.h"
-#include "framework/EliteDecisionMaking/EliteBehaviorTree/EBehaviorTree.h"
+#include "EBehaviorTree.h"
 #include "framework/SteeringBehaviors/Steering/SteeringBehaviors.h"
 #include "IExamInterface.h"
 #include "framework/EliteMath/EVector2.h"
@@ -128,7 +128,7 @@ namespace BT_Actions
 		if (!pSurvivor)
 			return FAILURE;
 		std::cout << "Changing to wander\n";
-		pSurvivor->SetToWander();
+		pSurvivor->SetToWander(true, true);
 		return SUCCESS;
 	}
 
@@ -150,14 +150,14 @@ namespace BT_Actions
 		EntityInfo* closestEntity{entitiesInFOV->front()};
 		for (EntityInfo* ei : *entitiesInFOV)
 		{
-			if (ei->Location.DistanceSquared(pInterface->Agent_GetInfo().Position) < closestEntity->Location.Distance(pInterface->Agent_GetInfo().Position))
+			if (ei->Location.DistanceSquared(pInterface->Agent_GetInfo().Location) < closestEntity->Location.Distance(pInterface->Agent_GetInfo().Location))
 			{
 				closestEntity = ei;
 			}
 		}
 		const auto& agentInfo{ pInterface->Agent_GetInfo() };
 		pSurvivor->SetToSeek(closestEntity->Location);
-		if (agentInfo.Position.DistanceSquared(closestEntity->Location) > agentInfo.GrabRange * agentInfo.GrabRange)
+		if (agentInfo.Location.DistanceSquared(closestEntity->Location) > agentInfo.GrabRange * agentInfo.GrabRange)
 			return RUNNING;
 
 		return SUCCESS; 
@@ -165,7 +165,6 @@ namespace BT_Actions
 
 	Elite::BehaviorState GoToClosestKnownItem(Elite::Blackboard* pBlackboard)
 	{
-		std::cout << "going to closest Item\n";
 		auto pMemory{ GetMemory(pBlackboard) };
 		if (!pMemory)
 			return FAILURE;
@@ -186,41 +185,50 @@ namespace BT_Actions
 
 		for (auto& item : items)
 		{
-			if (agentInfo.Position.DistanceSquared(item.Location) < agentInfo.Position.DistanceSquared(closestItem))
+			if (agentInfo.Location.DistanceSquared(item.Location) < agentInfo.Location.DistanceSquared(closestItem))
 				closestItem = item.Location;
 		}
 
 		pSurvivor->SetToSeek(closestItem);
-		if (agentInfo.Position.DistanceSquared(closestItem) > agentInfo.GrabRange * agentInfo.GrabRange)
+		if (agentInfo.Location.DistanceSquared(closestItem) > agentInfo.GrabRange * agentInfo.GrabRange)
 			return RUNNING;
 
 		return SUCCESS;
 	}
 
-	Elite::BehaviorState GoToClosestHouse(Elite::Blackboard* pBlackboard)
+	Elite::BehaviorState GoToClosestHouseInFOV(Elite::Blackboard* pBlackboard)
 	{
-		auto housesInFOV{ GetHousesInFOV(pBlackboard) };
-		if (!housesInFOV)
+		const auto housesInFOV{ GetHousesInFOV(pBlackboard) };
+		if (!housesInFOV || housesInFOV->empty())
 			return FAILURE;
 
 		ISurvivorAgent* pSurvivor{ GetSurvivor(pBlackboard) };
 		if (!pSurvivor)
 			return FAILURE;
 
-		auto pInterface{ GetInterface(pBlackboard) };
+		const auto pInterface{ GetInterface(pBlackboard) };
 		if (!pInterface)
 			return FAILURE;
 
 		HouseInfo* closestHouse{ housesInFOV->front() };
 		for (HouseInfo* hi : *housesInFOV)
 		{
-			if (hi->Center.DistanceSquared(pInterface->Agent_GetInfo().Position) < closestHouse->Center.DistanceSquared(pInterface->Agent_GetInfo().Position))
+			if (hi->Center.DistanceSquared(pInterface->Agent_GetInfo().Location) < closestHouse->Center.DistanceSquared(pInterface->Agent_GetInfo().Location))
 			{
 				closestHouse = hi;
 			}
 		}
 
-		pSurvivor->SetToSeek(closestHouse->Center);
+		const auto agentInfo{ pInterface->Agent_GetInfo() };
+		pSurvivor->SetToSeek(pInterface->NavMesh_GetClosestPathPoint(closestHouse->Center));
+		if (agentInfo.Location.DistanceSquared(closestHouse->Center) > agentInfo.GrabRange * agentInfo.GrabRange)
+		{
+
+
+			return RUNNING;
+		}
+
+
 		return SUCCESS;
 	}
 
@@ -378,7 +386,7 @@ namespace BT_Actions
 		EntityInfo* closestEntity{ entitiesInFOV->front() };
 		for (EntityInfo* ei : *entitiesInFOV)
 		{
-			if (ei->Type == eEntityType::ENEMY && ei->Location.DistanceSquared(pInterface->Agent_GetInfo().Position) < closestEntity->Location.Distance(pInterface->Agent_GetInfo().Position))
+			if (ei->Type == eEntityType::ENEMY && ei->Location.DistanceSquared(pInterface->Agent_GetInfo().Location) < closestEntity->Location.Distance(pInterface->Agent_GetInfo().Location))
 			{
 				closestEntity = ei;
 			}
@@ -414,6 +422,60 @@ namespace BT_Actions
 	Elite::BehaviorState PrintTest(Elite::Blackboard* pBlackboard)
 	{
 		std::cout << "TESTING BEHAVIOR\n";
+		return SUCCESS;
+	}
+
+	HouseInfo* GetClosestHouse(Elite::Blackboard* pBlackboard)
+	{
+		auto pMemory{ GetMemory(pBlackboard) };
+		if (!pMemory)
+			return nullptr;
+
+		auto pInterface{ GetInterface(pBlackboard) };
+		if (!pInterface)
+			return nullptr;
+
+		std::vector<HouseInfo> houses{ pMemory->GetSeenHouses() };
+		HouseInfo* closestHouse{ &houses[0] };
+		const Elite::Vector2 agentPos{ pInterface->Agent_GetInfo().Location };
+		for (auto& house : houses)
+		{
+			if (house.Center.Distance(agentPos) < closestHouse->Center.Distance(agentPos))
+				closestHouse = &house;
+		}
+
+		return closestHouse;
+	}
+
+	HouseInfo* GetClosestHouseInFOV(Elite::Blackboard* pBlackboard)
+	{
+		auto housesInFOV{ GetHousesInFOV(pBlackboard) };
+		if (!housesInFOV || housesInFOV->empty())
+			return nullptr;
+
+		auto pInterface{ GetInterface(pBlackboard) };
+		if (!pInterface)
+			return nullptr;
+
+		HouseInfo* closestHouse{ housesInFOV->front() };
+		const Elite::Vector2 agentPos{ pInterface->Agent_GetInfo().Location };
+		for (const auto& house : *housesInFOV)
+		{
+			if (house->Center.Distance(agentPos) < closestHouse->Center.Distance(agentPos))
+				closestHouse = house;
+		}
+
+		return closestHouse;
+	}
+
+	Elite::BehaviorState ChangeToExplore(Elite::Blackboard* pBlackboard)
+	{
+		auto pSurvivor{ GetSurvivor(pBlackboard) };
+		if (!pSurvivor)
+			return FAILURE;
+
+
+		pSurvivor->SetToExplore();
 		return SUCCESS;
 	}
 }
@@ -480,7 +542,7 @@ namespace BT_Conditions
 				continue;
 
 			//check if item is in pickup range
-			if (entity->Location.DistanceSquared(agentInfo.Position) < agentInfo.GrabRange * agentInfo.GrabRange)
+			if (entity->Location.DistanceSquared(agentInfo.Location) < agentInfo.GrabRange * agentInfo.GrabRange)
 				return true;
 		}
 
@@ -514,13 +576,13 @@ namespace BT_Conditions
 
 		auto t = pSurvivor->GetTarget();
 
-		Elite::Vector2 agentPos{ pInterface->Agent_GetInfo().Position };
+		Elite::Vector2 agentPos{ pInterface->Agent_GetInfo().Location };
 		EAgentInfo eAgentInfo = pInterface->Agent_GetInfo();
 		const Elite::Vector2 agentForward{ eAgentInfo.GetForward() };
 		const Elite::Vector2 toTarget{ (*t - agentPos).GetNormalized() };
 
 		const float angleBetween{ Elite::ToDegrees(acos(agentForward.Dot(toTarget))) };
-		constexpr float errorMargin{ 20.f };
+		constexpr float errorMargin{ 15.f };
 		std::cout << "AngleBetween: " << angleBetween << "\n";
 		return angleBetween < errorMargin;
 	}
@@ -559,8 +621,7 @@ namespace BT_Conditions
 			return false;
 
 		//check influence on neighboring squares 
-		const auto& node = pInfluenceMap->GetNodeAtWorldPos(pInterface->Agent_GetInfo().Position);
-
+		const auto& node = pInfluenceMap->GetNodeAtWorldPos(pInterface->Agent_GetInfo().Location);
 		float scannedCount{ 0 };
 
 		for (const auto& connection : pInfluenceMap->GetConnections(node->GetIndex()))
@@ -569,7 +630,7 @@ namespace BT_Conditions
 				++scannedCount;
 		}
 
-		return scannedCount > pInfluenceMap->GetConnections(node->GetIndex()).size() / 1.7f;
+		return scannedCount > pInfluenceMap->GetConnections(node->GetIndex()).size() / 2;
 	}
 
 	bool IsDangerNear(Elite::Blackboard* pBlackboard)
@@ -583,7 +644,7 @@ namespace BT_Conditions
 			return false;
 
 		//check influence on neighboring squares 
-		const auto& nodes = pInfluenceMap->GetNodeIndicesInRadius(pInterface->Agent_GetInfo().Position, pInterface->Agent_GetInfo().FOV_Range * 2);
+		const auto& nodes = pInfluenceMap->GetNodeIndicesInRadius(pInterface->Agent_GetInfo().Location, pInterface->Agent_GetInfo().FOV_Range * 2);
 
 		float scannedCount{ 0 };
 
@@ -593,7 +654,6 @@ namespace BT_Conditions
 			{
 				if (pInfluenceMap->GetNode(connection->GetTo())->GetInfluence() < -10)
 				{
-					std::cout << "Danger near!\n";
 					return true;
 				}
 			}
@@ -613,7 +673,7 @@ namespace BT_Conditions
 			return false;
 
 		//check influence on neighboring squares 
-		const auto& nodes = pInfluenceMap->GetNodeIndicesInRadius(pInterface->Agent_GetInfo().Position, pInterface->Agent_GetInfo().FOV_Range * 2);
+		const auto& nodes = pInfluenceMap->GetNodeIndicesInRadius(pInterface->Agent_GetInfo().Location, pInterface->Agent_GetInfo().FOV_Range * 2);
 
 		float scannedCount{ 0 };
 
@@ -623,7 +683,6 @@ namespace BT_Conditions
 			{
 				if (pInfluenceMap->GetNode(connection->GetTo())->GetInfluence() > 10)
 				{
-					std::cout << "Reward near\n";
 					return true;
 				}
 			}
@@ -691,7 +750,32 @@ namespace BT_Conditions
 		return *pState == SurvivorState::AGGRO;
 	}
 
+	bool IsInventoryFull(Elite::Blackboard* pBlackboard)
+	{
+		const auto& pInventory{ GetInventory(pBlackboard) };
+		if (!pInventory)
+			return false;
 
+		return pInventory->IsFull();
+	}
+
+	bool HasSeenHouse(Elite::Blackboard* pBlackboard)
+	{
+		const auto& pMemory{ GetMemory(pBlackboard) };
+		if (!pMemory)
+			return false;
+
+		return !pMemory->GetSeenHouses().empty();
+	}
+	bool IsHouseVisited(Elite::Blackboard* pBlackboard, HouseInfo* house)
+	{
+		const auto& pMemory{ GetMemory(pBlackboard) };
+		if (!pMemory)
+			return false;
+		
+
+		return pMemory->IsHouseVisited(*house);
+	}
 }
 
 #endif

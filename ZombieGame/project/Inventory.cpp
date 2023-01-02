@@ -72,9 +72,21 @@ bool Inventory::GrabItem(EntityInfo entity)
 	if (m_pInterface->Inventory_AddItem(freeSlot, item))
 	{
 		m_pInventory[freeSlot] = item;
+		++m_NrItems;
+			
 		return true;
 	}
 
+	return false;
+}
+
+bool Inventory::DropItem(UINT slot)
+{
+	if (m_pInterface->Inventory_RemoveItem(m_CurrentSlot))
+	{
+		--m_NrItems;
+		return true;
+	}
 	return false;
 }
 

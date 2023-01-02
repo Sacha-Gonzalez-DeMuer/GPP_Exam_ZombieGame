@@ -23,7 +23,7 @@ public:
 	BlendedSteering(std::vector<WeightedBehavior> weightedBehaviors);
 
 	void AddBehaviour(WeightedBehavior weightedBehavior) { m_WeightedBehaviors.push_back(weightedBehavior); }
-	SteeringPlugin_Output CalculateSteering(float deltaT, const AgentInfo* pAgent) override;
+	SteeringPlugin_Output CalculateSteering(float deltaT, const IExamInterface* pInterface) override;
 
 	// returns a reference to the weighted behaviors, can be used to adjust weighting. Is not intended to alter the behaviors themselves.
 	std::vector<WeightedBehavior>& GetWeightedBehaviorsRef() { return m_WeightedBehaviors; }
@@ -44,10 +44,27 @@ public:
 	{}
 
 	void AddBehaviour(ISteeringBehavior* pBehavior) { m_PriorityBehaviors.push_back(pBehavior); }
-	SteeringPlugin_Output CalculateSteering(float deltaT, const AgentInfo* pAgent) override;
+	SteeringPlugin_Output CalculateSteering(float deltaT, const IExamInterface* pInterface) override;
 
 private:
 	std::vector<ISteeringBehavior*> m_PriorityBehaviors = {};
 
+	using ISteeringBehavior::SetTarget; // made private because targets need to be set on the individual behaviors, not the combined behavior
+};
+
+//*****************
+//ADDITIVE STEERING
+class AdditiveSteering final : public ISteeringBehavior
+{
+public:
+	AdditiveSteering(std::vector<ISteeringBehavior*> priorityBehaviors)
+		:m_PriorityBehaviors(priorityBehaviors)
+	{}
+
+	void AddBehaviour(ISteeringBehavior* pBehavior) { m_PriorityBehaviors.push_back(pBehavior); }
+	SteeringPlugin_Output CalculateSteering(float deltaT, const IExamInterface* pInterface) override;
+
+private:
+	std::vector<ISteeringBehavior*> m_PriorityBehaviors = {};
 	using ISteeringBehavior::SetTarget; // made private because targets need to be set on the individual behaviors, not the combined behavior
 };
