@@ -9,7 +9,7 @@ class IExamInterface;
 
 class SurvivorAgentMemory final
 {
-	using InfluenceGrid = Elite::GridGraph<Elite::InfluenceNode, Elite::GraphConnection>;
+	using InfluenceGrid = Elite::GridGraph<Elite::WorldNode, Elite::GraphConnection>;
 
 public:
 	SurvivorAgentMemory(IExamInterface* pInterface);
@@ -25,6 +25,7 @@ public:
 	Elite::InfluenceMap<InfluenceGrid>* GetInfluenceMap() const { return m_pInfluenceMap; };
 	std::vector<EntityInfo> GetSeenItems() const { return m_SeenItems; };
 	std::vector<HouseInfo> GetSeenHouses() const { return m_SeenHouses; };
+	std::vector<HouseInfo> GetVisitedHouses() const { return m_VisitedHouses; };
 
 	void AddToSeenItems(const EntityInfo& item);
 	void OnPickUpItem(const EntityInfo& item);
@@ -39,7 +40,7 @@ private:
 	//InfluenceMap
 	Elite::InfluenceMap<InfluenceGrid>* m_pInfluenceMap{ nullptr };
 	Elite::GraphRenderer* m_pGraphRenderer{ nullptr };
-	std::unordered_set<int> GetVisibleNodes(IExamInterface* pInterface) const;
+	std::unordered_set<int> GetNodesInPropagationRadius(IExamInterface* pInterface) const;
 	float m_PropagationRadius;
 
 

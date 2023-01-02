@@ -100,25 +100,28 @@ namespace Elite
 	{
 	public:
 		InfluenceNode(int index, Elite::Vector2 pos = { 0,0 }, float influence = 0.f)
-			: GraphNode2D(index, pos), m_Influence(influence), m_Scanned{ false } {}
+			: GraphNode2D(index, pos), m_Influence(influence){}
 
 		float GetInfluence() const { return m_Influence; };
 		void SetInfluence(float influence) { m_Influence = influence; };
 
-		bool GetScanned() const { return m_Scanned; };
-		void SetScanned(bool scanned) { m_Scanned = scanned; };
-
 	private:
 		float m_Influence;
-		bool m_Scanned;
 	};
 
 	class WorldNode final : public Elite::InfluenceNode
 	{
 	public:
 		WorldNode(int index, Elite::Vector2 pos = { 0,0 }, float influence = 0.f)
-			: Elite::InfluenceNode(index, pos, influence) {}
+			: Elite::InfluenceNode(index, pos, influence), m_Scanned(false) , m_HasItem(false) {}
 
+		bool GetScanned() const { return m_Scanned; };
+		void SetScanned(bool scanned) { m_Scanned = scanned; };
 
+		bool HasItem() const { return m_HasItem; };
+		void SetItem(bool doesHave) { m_HasItem = doesHave; };
+	private:
+		bool m_Scanned;
+		bool m_HasItem;
 	};
 }

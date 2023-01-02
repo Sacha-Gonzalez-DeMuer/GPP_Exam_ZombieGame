@@ -163,38 +163,7 @@ namespace BT_Actions
 		return SUCCESS; 
 	}
 
-	Elite::BehaviorState GoToClosestKnownItem(Elite::Blackboard* pBlackboard)
-	{
-		auto pMemory{ GetMemory(pBlackboard) };
-		if (!pMemory)
-			return FAILURE;
 
-		IExamInterface* pInterface{ GetInterface(pBlackboard) };
-		if (!pInterface)
-			return FAILURE;
-
-		ISurvivorAgent* pSurvivor{ GetSurvivor(pBlackboard) };
-		if (!pSurvivor)
-			return FAILURE;
-
-		auto& items{ pMemory->GetSeenItems() };
-		if (items.empty()) return FAILURE;
-		Elite::Vector2 closestItem{ items[0].Location };
-
-		auto agentInfo{ pInterface->Agent_GetInfo() };
-
-		for (auto& item : items)
-		{
-			if (agentInfo.Location.DistanceSquared(item.Location) < agentInfo.Location.DistanceSquared(closestItem))
-				closestItem = item.Location;
-		}
-
-		pSurvivor->SetToSeek(closestItem);
-		if (agentInfo.Location.DistanceSquared(closestItem) > agentInfo.GrabRange * agentInfo.GrabRange)
-			return RUNNING;
-
-		return SUCCESS;
-	}
 
 	Elite::BehaviorState GoToClosestHouseInFOV(Elite::Blackboard* pBlackboard)
 	{
@@ -375,10 +344,6 @@ namespace BT_Actions
 		if (!entitiesInFOV || entitiesInFOV->empty())
 			return FAILURE;
 
-		auto pInterface{ GetInterface(pBlackboard) };
-		if (!pInterface)
-			return FAILURE;
-
 		auto pSurvivor{ GetSurvivor(pBlackboard) };
 		if (!pSurvivor)
 			return FAILURE; 
@@ -386,7 +351,7 @@ namespace BT_Actions
 		EntityInfo* closestEntity{ entitiesInFOV->front() };
 		for (EntityInfo* ei : *entitiesInFOV)
 		{
-			if (ei->Type == eEntityType::ENEMY && ei->Location.DistanceSquared(pInterface->Agent_GetInfo().Location) < closestEntity->Location.Distance(pInterface->Agent_GetInfo().Location))
+			if (ei->Type == eEntityType::ENEMY && ei->Location.DistanceSquared(pSurvivor->GetInfo().Location) < closestEntity->Location.Distance(pSurvivor->GetInfo().Location))
 			{
 				closestEntity = ei;
 			}
@@ -397,27 +362,37 @@ namespace BT_Actions
 		return SUCCESS;
 	}
 
-	//Elite::BehaviorState TurnAround(Elite::Blackboard* pBlackboard)
-	//{
-	//	auto pSurvivor{ GetSurvivor(pBlackboard) };
-	//	if (!pSurvivor)
-	//		return FAILURE;
+	Elite::BehaviorState GoTo(Elite::Blackboard* pBlackboard, Elite::Vector2 target)
+	{
+		if (target.x == FLT_MAX)
+			return FAILURE;
 
-	//	auto pInterface{ GetInterface(pBlackboard) };
-	//	if (!pInterface)
-	//		return FAILURE;
+		auto pSurvivor{ GetSurvivor(pBlackboard) };
+		if (!pSurvivor)
+			return FAILURE;
 
 
-	//	Elite::Vector2 agentPos{ pInterface->Agent_GetInfo().Position };
-	//	EAgentInfo eAgentInfo = pInterface->Agent_GetInfo();
-	//	const Elite::Vector2 agentForward{ eAgentInfo.GetForward() };
+		pSurvivor->SetToSeek(target);
+		if (pSurvivor->GetInfo().Location.DistanceSquared(target) > pSurvivor->GetInfo().GrabRange * pSurvivor->GetInfo().GrabRange)
+		{
+			return RUNNING;
+		}
 
-	//	pSurvivor->SetToLookAround();
+		return SUCCESS;
+	}
 
-	//	const float angleBetween{ Elite::ToDegrees(atan2(agentForward.Dot(-agentForward), agentForward.Cross(-agentForward))) };
-	//	constexpr float errorMargin{ 2.f };
-	//	
-	//}
+	Elite::BehaviorState ChangeToFleeLookingAround(Elite::Blackboard* pBlackboard)
+	{
+		auto pSurvivor{ GetSurvivor(pBlackboard) };
+		if (!pSurvivor)
+			return FAILURE;
+
+		if (pSurvivor->SetToFleeLookingAround())
+			return SUCCESS;
+
+		return FAILURE;
+	}
+
 
 	Elite::BehaviorState PrintTest(Elite::Blackboard* pBlackboard)
 	{
@@ -425,6 +400,27 @@ namespace BT_Actions
 		return SUCCESS;
 	}
 
+	Elite::Vector2 GetClosestHousePos(Elite::Blackboard* pBlackboard)
+	{
+		auto pMemory{ GetMemory(pBlackboard) };
+		if (!pMemory)
+			return { FLT_MAX, FLT_MAX };
+
+		auto pInterface{ GetInterface(pBlackboard) };
+		if (!pInterface)
+			return { FLT_MAX, FLT_MAX };
+
+		std::vector<HouseInfo> houses{ pMemory->GetSeenHouses() };
+		HouseInfo* closestHouse{ &houses[0] };
+		const Elite::Vector2 agentPos{ pInterface->Agent_GetInfo().Location };
+		for (auto& house : houses)
+		{
+			if (house.Center.Distance(agentPos) < closestHouse->Center.Distance(agentPos))
+				closestHouse = &house;
+		}
+
+		return closestHouse->Center;
+	}
 	HouseInfo* GetClosestHouse(Elite::Blackboard* pBlackboard)
 	{
 		auto pMemory{ GetMemory(pBlackboard) };
@@ -466,6 +462,34 @@ namespace BT_Actions
 		}
 
 		return closestHouse;
+	}
+
+	Elite::Vector2 GetClosestKnownItemPos(Elite::Blackboard* pBlackboard)
+	{
+		auto pMemory{ GetMemory(pBlackboard) };
+		if (!pMemory)
+			return { FLT_MAX, FLT_MAX };
+
+
+		ISurvivorAgent* pSurvivor{ GetSurvivor(pBlackboard) };
+		if (!pSurvivor)
+			return { FLT_MAX, FLT_MAX };
+
+		auto& items{ pMemory->GetSeenItems() };
+		if (items.empty()) 	
+			return { FLT_MAX, FLT_MAX };
+
+
+		Elite::Vector2 closestItem{ FLT_MAX, FLT_MAX };
+
+		for (auto& item : items)
+		{
+			if (pSurvivor->GetInfo().Location.DistanceSquared(item.Location) < pSurvivor->GetInfo().Location.DistanceSquared(closestItem))
+				closestItem = item.Location;
+		}
+
+		if (closestItem.x != FLT_MAX)
+			return closestItem;
 	}
 
 	Elite::BehaviorState ChangeToExplore(Elite::Blackboard* pBlackboard)
@@ -583,7 +607,7 @@ namespace BT_Conditions
 
 		const float angleBetween{ Elite::ToDegrees(acos(agentForward.Dot(toTarget))) };
 		constexpr float errorMargin{ 15.f };
-		std::cout << "AngleBetween: " << angleBetween << "\n";
+
 		return angleBetween < errorMargin;
 	}
 
@@ -683,6 +707,7 @@ namespace BT_Conditions
 			{
 				if (pInfluenceMap->GetNode(connection->GetTo())->GetInfluence() > 10)
 				{
+					std::cout << "Reward is near\n";
 					return true;
 				}
 			}
@@ -765,8 +790,14 @@ namespace BT_Conditions
 		if (!pMemory)
 			return false;
 
+		if (!pMemory->GetSeenHouses().empty())
+		{
+			std::cout << "has seen house\n";
+				return true;
+		}
 		return !pMemory->GetSeenHouses().empty();
 	}
+
 	bool IsHouseVisited(Elite::Blackboard* pBlackboard, HouseInfo* house)
 	{
 		const auto& pMemory{ GetMemory(pBlackboard) };
@@ -776,6 +807,16 @@ namespace BT_Conditions
 
 		return pMemory->IsHouseVisited(*house);
 	}
+
+	bool HasVisitedAllSeenHouses(Elite::Blackboard* pBlackboard)
+	{
+		const auto& pMemory{ GetMemory(pBlackboard) };
+		if (!pMemory)
+			return false;
+
+		return pMemory->GetVisitedHouses().size() <= pMemory->GetSeenHouses().size() ;
+	}
+
 }
 
 #endif

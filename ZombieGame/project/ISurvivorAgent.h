@@ -10,7 +10,7 @@ class PrioritySteering;
 class IExamInterface;
 class ISteeringBehavior;
 class Inventory;
-using InfluenceGrid = Elite::GridGraph<Elite::InfluenceNode, Elite::GraphConnection>;
+using InfluenceGrid = Elite::GridGraph<Elite::WorldNode, Elite::GraphConnection>;
 
 enum class SurvivorState
 {
@@ -45,6 +45,8 @@ public:
 	void SetToFleeLookingAt();
 	void SetToFleeLookingAt(const Elite::Vector2& target);
 	void SetToExplore();
+	bool SetToFleeLookingAround();
+	void SetToFleeLookingAround(const Elite::Vector2& target);
 
 	void SetSurvivorState(SurvivorState toState) { m_SurvivorState = toState; };
 
@@ -53,6 +55,7 @@ public:
 
 	std::shared_ptr<ISteeringBehavior> GetCurrentSteering() const { return m_pCurrentSteering; };
 
+	EAgentInfo GetInfo() const;
 	UINT GetInventorySlot() const { return m_InventorySlot; };
 
 protected:
@@ -63,7 +66,7 @@ protected:
 
 private:
 	//Data
-	//IExamInterface* m_pInterface{ nullptr };
+	IExamInterface* m_pInterface{ nullptr };
 	void UpdateObjectsInFOV(IExamInterface* pInterface);
 
 	//DecisionMaking
@@ -83,6 +86,7 @@ private:
 	std::shared_ptr<ISteeringBehavior> m_pLookAt;
 	std::shared_ptr<ISteeringBehavior> m_pFlee;
 	std::shared_ptr<ISteeringBehavior> m_pFleeLookingAt;
+	std::shared_ptr<ISteeringBehavior> m_pFleeLookingAround;
 	std::shared_ptr<ISteeringBehavior> m_pExplore;
 
 	void InitializeSteering();

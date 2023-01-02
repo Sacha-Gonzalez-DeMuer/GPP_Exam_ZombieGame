@@ -116,7 +116,7 @@ public:
 	virtual ~Explore() = default;
 
 
-	using InfluenceGrid = Elite::GridGraph<Elite::InfluenceNode, Elite::GraphConnection>;
+	using InfluenceGrid = Elite::GridGraph<Elite::WorldNode, Elite::GraphConnection>;
 
 	SteeringPlugin_Output CalculateSteering(float deltaT, const IExamInterface* pInterface) override;
 	void SetInfluenceMap(Elite::InfluenceMap<InfluenceGrid>* influenceMap) { m_pInfluenceMap = influenceMap; };

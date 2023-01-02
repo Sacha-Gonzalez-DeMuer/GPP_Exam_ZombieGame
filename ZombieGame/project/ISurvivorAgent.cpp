@@ -13,6 +13,7 @@ using namespace BT_Actions;
 ISurvivorAgent::ISurvivorAgent(IExamInterface* pInterface)
 	: m_pInventory{new Inventory(pInterface, pInterface->Inventory_GetCapacity())}
 	, m_pMemory{new SurvivorAgentMemory(pInterface)}
+	, m_pInterface{pInterface}
 {
 	Initialize(pInterface);
 }
@@ -96,9 +97,9 @@ void ISurvivorAgent::SetToFlee()
 }
 void ISurvivorAgent::SetToFleeLookingAt()
 {
+	m_pWander->SetAutoOrient(false);
 	m_pFlee->SetTarget(*m_Target);
 	m_pLookAt->SetTarget(*m_Target);
-	std::cout << "target;" << m_Target->x << ", " << m_Target->y << "\n";
 	m_pCurrentSteering = m_pFleeLookingAt;
 }
 
@@ -106,7 +107,6 @@ void ISurvivorAgent::SetToFleeLookingAt(const Elite::Vector2& target)
 {
 	m_pFlee->SetTarget(target);
 	m_pLookAt->SetTarget(target);
-	std::cout << "target;" << target.x << ", " << target.y << "\n";
 	m_pCurrentSteering = m_pFleeLookingAt;
 }
 
@@ -115,6 +115,26 @@ void ISurvivorAgent::SetToExplore()
 	m_pCurrentSteering = m_pExplore;
 }
 
+bool ISurvivorAgent::SetToFleeLookingAround()
+{
+	if (!m_Target)
+		return false;
+	m_pFlee->SetTarget(*m_Target);
+	m_pCurrentSteering = m_pFleeLookingAround;
+	return true;
+}
+
+void ISurvivorAgent::SetToFleeLookingAround(const Elite::Vector2& target)
+{
+	m_pFlee->SetTarget(target);
+	m_pCurrentSteering = m_pFleeLookingAround;
+}
+
+
+EAgentInfo ISurvivorAgent::GetInfo() const
+{
+	return m_pInterface->Agent_GetInfo();
+}
 
 HouseInfo* ISurvivorAgent::GetNearestHouse(const Elite::Vector2& fromPos) const
 {
@@ -161,8 +181,6 @@ void ISurvivorAgent::UpdateObjectsInFOV(IExamInterface* pInterface)
 	{
 		if (pInterface->Fov_GetEntityByIndex(i, ei))
 		{
-			//std::unique_ptr<EntityInfo> pEntity = std::make_unique<EntityInfo>(ei);
-			
 			m_pEntitiesInFOV.emplace_back(new EntityInfo(ei));
 			continue;
 		}
@@ -185,13 +203,14 @@ void ISurvivorAgent::InitializeBehaviorTree(IExamInterface* pInterface)
 			new BehaviorSequence //Self Defence Sequence
 			({
 				new BehaviorConditional(IsDangerNear),
+
 				new BehaviorSelector
 					({
-
 						new BehaviorSequence
 						({
 							new BehaviorConditional(IsEnemyInFOV),
 							new BehaviorAction(SetClosestEnemyAsTarget),
+
 							new BehaviorSelector //Fight/Flight Selector
 							({
 								new BehaviorSequence
@@ -201,7 +220,7 @@ void ISurvivorAgent::InitializeBehaviorTree(IExamInterface* pInterface)
 									new BehaviorWhile(new NotDecorator(AlignedWithTarget), new BehaviorAction(ChangeToLookAt)),
 									new BehaviorAction(UseItem)
 								}),
-								
+
 								new BehaviorWhile(new BehaviorConditional(IsEnemyInFOV), new BehaviorAction(ChangeToFleeLookingAt))
 							})
 						}),
@@ -244,17 +263,27 @@ void ISurvivorAgent::InitializeBehaviorTree(IExamInterface* pInterface)
 					new BehaviorSequence
 					({
 						new BehaviorConditional(HasSeenItem),
-						new BehaviorAction(GoToClosestKnownItem)
+						new TBehaviorAction<Elite::Vector2>(GoTo, GetClosestKnownItemPos)
 					})
 				}),
 			}),
 			
 
-			new BehaviorSequence
+			new BehaviorSelector //Exploration Selector
 			({
-				new BehaviorConditional(IsHouseInFOV),
-				new TNotDecorator<HouseInfo*>(IsHouseVisited, GetClosestHouseInFOV),
-				new BehaviorAction(GoToClosestHouseInFOV)
+				new BehaviorSequence
+				({
+					new BehaviorConditional(IsHouseInFOV),
+					new TNotDecorator<HouseInfo*>(IsHouseVisited, GetClosestHouseInFOV),
+					new TBehaviorAction<Elite::Vector2>(GoTo, GetClosestHousePos)
+				}),
+
+				new BehaviorSequence
+				({
+					new BehaviorConditional(HasSeenHouse),
+					new NotDecorator(HasVisitedAllSeenHouses),
+					new TBehaviorAction<Elite::Vector2>(GoTo, GetClosestHousePos)
+				}),
 			}),
 
 			new BehaviorAction(ChangeToExplore)
@@ -286,7 +315,8 @@ Elite::Blackboard* ISurvivorAgent::CreateBlackboard(IExamInterface* pInterface)
 void ISurvivorAgent::InitializeSteering()
 {
 	m_pWander = std::make_shared<Wander>();
-	m_pWander->SetAutoOrient(true);
+	m_pWander->SetAutoOrient(false);
+
 	m_pSeek = std::make_shared<Seek>();
 	m_pLookAround = std::make_shared<LookAround>();
 	m_pLookAt = std::make_shared<LookAt>();
@@ -298,6 +328,10 @@ void ISurvivorAgent::InitializeSteering()
 	m_pFleeLookingAt->SetRunMode(true);
 	m_pFleeLookingAt->SetAutoOrient(false);
 
+	m_pFleeLookingAround = std::make_shared<AdditiveSteering>(std::vector<ISteeringBehavior*>
+	{m_pFlee.get(), m_pLookAround.get(), m_pWander.get()});
+	m_pFleeLookingAround->SetRadius(GetInfo().FOV_Range * 2);
+	m_pFleeLookingAround->SetAutoOrient(false);
 
 	m_pExplore = std::make_shared<Explore>();
 	std::dynamic_pointer_cast<Explore>(m_pExplore)->SetInfluenceMap(m_pMemory->GetInfluenceMap());

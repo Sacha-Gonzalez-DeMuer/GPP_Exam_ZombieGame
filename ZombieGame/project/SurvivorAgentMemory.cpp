@@ -5,12 +5,12 @@
 
 
 SurvivorAgentMemory::SurvivorAgentMemory(IExamInterface* pInterface)
-	: m_PropagationRadius{ pInterface->Agent_GetInfo().FOV_Range }
+	: m_PropagationRadius{ pInterface->Agent_GetInfo().FOV_Range * 3 }
 {
 	//Initialize InfluenceMap
 	m_pInfluenceMap = new Elite::InfluenceMap<InfluenceGrid>(false);
 	float worldDimension{ max(pInterface->World_GetInfo().Dimensions.x, pInterface->World_GetInfo().Dimensions.y) };
-	int celSize{ static_cast<int>(pInterface->Agent_GetInfo().GrabRange) };
+	int celSize{ static_cast<int>(pInterface->Agent_GetInfo().GrabRange * 1.5f) };
 	int colRows{ static_cast<int>(worldDimension) / celSize };
 
 	m_pInfluenceMap->InitializeGrid({ -worldDimension / 2.f, -worldDimension / 2.f }, colRows, colRows, celSize, false, true);
@@ -71,14 +71,6 @@ void SurvivorAgentMemory::DebugRender(IExamInterface* pInterface) const
 	}
 }
 
-void SurvivorAgentMemory::RenderInfluenceMap(IExamInterface* pInterface) const
-{
-	m_pInfluenceMap->SetNodeColorsBasedOnInfluence();
-
-	auto visibleNodes{ GetVisibleNodes(pInterface) };
-	m_pGraphRenderer->RenderNodes(m_pInfluenceMap, pInterface, visibleNodes, true, false, false, false);
-
-}
 
 void SurvivorAgentMemory::AddToSeenItems(const EntityInfo& item)
 {
@@ -166,8 +158,8 @@ void SurvivorAgentMemory::UpdateHouses(IExamInterface* pInterface, const std::ve
 
 void SurvivorAgentMemory::UpdateSeenItems(IExamInterface* pInterface)
 {
-	if (m_SeenItems.empty())
-		return;
+	/*if (m_SeenItems.empty())
+		return;*/
 }
 
 
@@ -187,13 +179,21 @@ void SurvivorAgentMemory::UpdateSeenCells(IExamInterface* pInterface, std::vecto
 			m_pInfluenceMap->SetInfluenceAtPosition(e->Location, -20);
 
 		if (e->Type == eEntityType::ITEM)
-			m_pInfluenceMap->SetInfluenceAtPosition(e->Location, 50);
+		{
+			int node{ m_pInfluenceMap->GetNodeAtWorldPos(e->Location)->GetIndex() };
+			m_pInfluenceMap->GetNode(node)->SetItem(true);
+		}
 	}
 
 	if (eAgentInfo.WasBitten) m_pInfluenceMap->SetInfluenceAtPosition(eAgentInfo.Location, -100);
 }
 
-std::unordered_set<int> SurvivorAgentMemory::GetVisibleNodes(IExamInterface* pInterface) const
+
+void SurvivorAgentMemory::RenderInfluenceMap(IExamInterface* pInterface) const
 {
-	return m_pInfluenceMap->GetNodeIndicesInRadius(pInterface->Agent_GetInfo().Location, m_PropagationRadius);
+	m_pInfluenceMap->SetNodeColorsBasedOnInfluence();
+
+	auto visibleNodes{ m_pInfluenceMap->GetNodeIndicesInRadius(pInterface->Agent_GetInfo().Location, m_PropagationRadius) };
+	m_pGraphRenderer->RenderNodes(m_pInfluenceMap, pInterface, visibleNodes, true, false, false, false);
+
 }

@@ -43,10 +43,14 @@ void Inventory::EquipWeapon()
 
 bool Inventory::HasWeapon() const
 {
-	for (UINT i = 0; i < m_InventorySize; ++i)
+	ItemInfo item{};
+	for (UINT i = 0; i < m_NrItems; ++i)
 	{
-		if (m_pInventory[i].Type == eItemType::PISTOL || m_pInventory[i].Type == eItemType::SHOTGUN)
+		if (m_pInventory[i].Type == eItemType::PISTOL || m_pInventory[i].Type == eItemType::SHOTGUN && m_pInterface->Inventory_GetItem(i, item))
+		{
+			std::cout << "has weapon\n";
 			return true;
+		}
 	}
 
 	return false;

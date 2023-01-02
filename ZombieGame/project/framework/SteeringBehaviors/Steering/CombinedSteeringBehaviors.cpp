@@ -65,6 +65,8 @@ SteeringPlugin_Output AdditiveSteering::CalculateSteering(float deltaT, const IE
 		steering.LinearVelocity += behaviorSteering.LinearVelocity;
 	}
 
+	steering.AutoOrient = m_AutoOrient;
+	steering.RunMode = m_RunMode;
 
 	return steering;
 }

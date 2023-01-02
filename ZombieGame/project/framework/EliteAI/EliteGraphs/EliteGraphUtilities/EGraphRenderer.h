@@ -33,7 +33,27 @@ namespace Elite
 	private:
 		void RenderCircleNode(IBaseInterface* pInterface, Vector2 pos, std::string text = "", float radius = DEFAULT_NODE_RADIUS, Elite::Color col = DEFAULT_NODE_COLOR, float depth = 0.0f) const;
 		void RenderRectNode(IBaseInterface* pInterface, Vector2 pos, std::string text = "", float width = DEFAULT_NODE_RADIUS, Elite::Color col = DEFAULT_NODE_COLOR, float depth = 0.0f) const;
-		void RenderRectNode(IBaseInterface* pInterface, InfluenceNode* pNode, std::string text = "", float width = DEFAULT_NODE_RADIUS, float depth = 0.0f) const;
+
+		template<class T_NodeType>
+		void RenderRectNode(IBaseInterface* pInterface, T_NodeType* pNode, std::string text = "", float width = DEFAULT_NODE_RADIUS, float depth = 0.0f) const
+		{
+			const Vector2 verts[4]
+			{
+				Vector2(pNode->GetPosition().x - width / 2.0f, pNode->GetPosition().y - width / 2.0f),
+				Vector2(pNode->GetPosition().x - width / 2.0f, pNode->GetPosition().y + width / 2.0f),
+				Vector2(pNode->GetPosition().x + width / 2.0f, pNode->GetPosition().y + width / 2.0f),
+				Vector2(pNode->GetPosition().x + width / 2.0f, pNode->GetPosition().y - width / 2.0f)
+			};
+
+			WorldNode* worldNode{ static_cast<WorldNode*>(pNode) };
+			if (worldNode && pNode->GetScanned())
+				pInterface->Draw_Point(pNode->GetPosition(), width, { 1,1,1 }, depth - .1f);
+
+
+
+			pInterface->Draw_SolidPolygon(&verts[0], 4, { pNode->GetColor().r, pNode->GetColor().g, pNode->GetColor().b }, depth);
+		};
+
 		void RenderConnection(IBaseInterface* pInterface, GraphConnection* con, Elite::Vector2 toPos, Elite::Vector2 fromPos, std::string text, Elite::Color col = DEFAULT_CONNECTION_COLOR, float depth = 0.0f) const;
 
 		// Get correct color/text depending on the pNode/pConnection type
@@ -123,12 +143,8 @@ namespace Elite
 					if (renderNodeNumbers)
 						nodeTxt = GetNodeText(pGraph->GetNode(idx));
 
-					InfluenceNode* tmp{std::dynamic_pointer_cast<InfluenceNode*>(pGraph->GetNode(idx))};
-					if(tmp)
-						RenderRectNode(pInterface, pGraph->GetNode(idx), nodeTxt, float(cellSize), 0.1f);
-					else
-						RenderRectNode(pInterface, cellPos, nodeTxt, float(cellSize), GetNodeColor(pGraph->GetNode(idx)), 0.1f);
 
+					RenderRectNode(pInterface, pGraph->GetNode(idx), nodeTxt, float(cellSize), 0.1f);
 				}
 			}
 		}

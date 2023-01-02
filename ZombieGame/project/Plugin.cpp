@@ -12,11 +12,9 @@ using namespace Elite;
 //Called only once, during initialization
 void Plugin::Initialize(IBaseInterface* pInterface, PluginInfo& info)
 {
-
 	//Retrieving the interface
 	//This interface gives you access to certain actions the AI_Framework can perform for you
 	m_pInterface = static_cast<IExamInterface*>(pInterface);
-
 
 	//Initialize Survivor
 	m_pSurvivorAgent = new ISurvivorAgent(m_pInterface);
