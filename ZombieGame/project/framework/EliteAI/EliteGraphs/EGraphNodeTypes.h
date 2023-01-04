@@ -8,6 +8,7 @@
 #pragma once
 #include "EGraphEnums.h"
 #include "EliteGraphUtilities/EGraphVisuals.h"
+#include "../../../ExtendedStructs.h"
 
 namespace Elite
 {
@@ -113,15 +114,28 @@ namespace Elite
 	{
 	public:
 		WorldNode(int index, Elite::Vector2 pos = { 0,0 }, float influence = 0.f)
-			: Elite::InfluenceNode(index, pos, influence), m_Scanned(false) , m_HasItem(false) {}
+			: Elite::InfluenceNode(index, pos, influence), m_Scanned(false), m_Item(eItemType::INVALID), m_ItemPos(FLT_MAX, FLT_MAX) {}
 
 		bool GetScanned() const { return m_Scanned; };
 		void SetScanned(bool scanned) { m_Scanned = scanned; };
 
-		bool HasItem() const { return m_HasItem; };
-		void SetItem(bool doesHave) { m_HasItem = doesHave; };
+		bool HasItem() const { return m_Item != eItemType::INVALID; };
+		eItemType GetItem() const { return m_Item; };
+		void SetItem(const ItemInfo& item) 
+		{ 
+			m_Item = item.Type; 
+			m_ItemPos = item.Location;
+		};
+		void RemoveItem()
+		{
+			m_Item = eItemType::INVALID;
+			m_ItemPos = { FLT_MAX,FLT_MAX };
+		};
+
+		Elite::Vector2 GetItemPos() const { return m_ItemPos; }
 	private:
 		bool m_Scanned;
-		bool m_HasItem;
+		eItemType m_Item;
+		Elite::Vector2 m_ItemPos;
 	};
 }

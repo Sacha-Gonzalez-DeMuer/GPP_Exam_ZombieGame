@@ -15,6 +15,7 @@
 #include "..\..\EliteAI\EliteGraphs\EGraph2D.h"
 #include "..\..\EliteAI\EliteGraphs\EGridGraph.h"
 #include "..\..\EliteAI\EliteGraphs\EInfluenceMap.h"
+#include "..\..\..\SurvivorAgentMemory.h"
 
 class SteeringAgent;
 class IExamInterface;
@@ -107,8 +108,9 @@ protected:
 };
 
 ///////////////////////////////////////
-//PURSUIT
+//EXPLORE
 //****
+class SurvivorAgentMemory;
 class Explore : public Wander {
 	
 public:
@@ -119,10 +121,37 @@ public:
 	using InfluenceGrid = Elite::GridGraph<Elite::WorldNode, Elite::GraphConnection>;
 
 	SteeringPlugin_Output CalculateSteering(float deltaT, const IExamInterface* pInterface) override;
-	void SetInfluenceMap(Elite::InfluenceMap<InfluenceGrid>* influenceMap) { m_pInfluenceMap = influenceMap; };
+	void Initialize(std::shared_ptr<SurvivorAgentMemory> pMemory) 
+	{
+		SetMemory(pMemory);
+		SetInfluenceMap(pMemory->GetInfluenceMap());
+	}
 
 protected:
 	Elite::InfluenceMap<InfluenceGrid>* m_pInfluenceMap{nullptr};
+	std::shared_ptr<SurvivorAgentMemory> m_pMemory{ nullptr };
+
+	void SetInfluenceMap(Elite::InfluenceMap<InfluenceGrid>* influenceMap) { m_pInfluenceMap = influenceMap; };
+	void SetMemory(std::shared_ptr<SurvivorAgentMemory> pMemory) { m_pMemory = pMemory; };
+};
+
+
+///////////////////////////////////////
+//EXPLORE
+//****
+class ExploreArea : public Explore {
+
+public:
+	ExploreArea() = default;
+	virtual ~ExploreArea() = default;
+
+
+	using InfluenceGrid = Elite::GridGraph<Elite::WorldNode, Elite::GraphConnection>;
+
+	SteeringPlugin_Output CalculateSteering(float deltaT, const IExamInterface* pInterface) override;
+	void AddToArea(std::unordered_set<int> toAdd) { m_pAreaToExplore.insert(toAdd.begin(), toAdd.end()); };
+protected:
+	std::unordered_set<int> m_pAreaToExplore;
 };
 
 ///////////////////////////////////////

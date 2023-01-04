@@ -182,9 +182,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="framework\Agent\BaseAgent.h" />
     <ClInclude Include="Behaviors.h" />
     <ClInclude Include="EBehaviorTree.h" />
     <ClInclude Include="ExtendedStructs.h" />
+    <ClInclude Include="framework\Agent\SteeringAgent.h" />
     <ClInclude Include="framework\EliteAI\EliteGraphs\EGraph2D.h" />
     <ClInclude Include="framework\EliteAI\EliteGraphs\EGraphConnectionTypes.h" />
     <ClInclude Include="framework\EliteAI\EliteGraphs\EGraphEnums.h" />
@@ -227,7 +229,13 @@
     <ClInclude Include="SurvivorAgentMemory.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="framework\Agent\BaseAgent.cpp">
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">../../stdafx.h</PrecompiledHeaderFile>
+    </ClCompile>
     <ClCompile Include="EBehaviorTree.cpp" />
+    <ClCompile Include="framework\Agent\SteeringAgent.cpp">
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">../../stdafx.h</PrecompiledHeaderFile>
+    </ClCompile>
     <ClCompile Include="framework\EliteAI\EliteGraphs\EGraphConnectionTypes.cpp">
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">../../../stdafx.h</PrecompiledHeaderFile>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">../../../stdafx.h</PrecompiledHeaderFile>

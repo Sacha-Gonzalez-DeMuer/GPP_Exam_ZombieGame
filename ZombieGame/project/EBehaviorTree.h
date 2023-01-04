@@ -169,27 +169,62 @@ namespace Elite
 		std::function<BehaviorState(Blackboard*)> m_fpAction = nullptr;
 	};
 
-	template<typename T>
-	class TBehaviorAction : public IBehavior
-	{
-	public:
-		explicit TBehaviorAction(std::function<BehaviorState(Blackboard*, T)> fp, std::function<T(Blackboard*)> objFunction)
-			: m_fpAction(fp), m_ObjFunc(objFunction) {}
-		virtual BehaviorState Execute(Blackboard* pBlackboard) override
-		{
-			if (m_fpAction == nullptr)
-				return BehaviorState::Failure;
+	//template<typename T>
+	//class TBehaviorAction : public IBehavior
+	//{
+	//public:
+	//	explicit TBehaviorAction(std::function<BehaviorState(Blackboard*, T)> fp, std::function<T(Blackboard*)> objFunction)
+	//		: m_fpAction(fp), m_ObjFunc(objFunction) {}
+	//	virtual BehaviorState Execute(Blackboard* pBlackboard) override
+	//	{
+	//		if (m_fpAction == nullptr)
+	//			return BehaviorState::Failure;
 
-			m_CurrentState = m_fpAction(pBlackboard, m_ObjFunc(pBlackboard)); // Call m_ObjFunc to get the value of T
-			return m_CurrentState;
+	//		m_CurrentState = m_fpAction(pBlackboard, m_ObjFunc(pBlackboard)); // Call m_ObjFunc to get the value of T
+	//		return m_CurrentState;
+	//	}
+
+	//private:
+	//	std::function<BehaviorState(Blackboard*, T)> m_fpAction = nullptr;
+	//	std::function<T(Blackboard*)> m_ObjFunc;
+	//};
+
+	template <typename T1, typename T2 = nullptr_t>
+	class TBehaviorAction : public IBehavior {
+	public:
+		explicit TBehaviorAction(std::function<BehaviorState(Blackboard*, T1)> fp, std::function<T1(Blackboard*)> objFunction)
+			: m_fpAction(fp), m_ObjFunc(objFunction) {}
+
+		explicit TBehaviorAction(std::function<BehaviorState(Blackboard*, T1)> fp, std::function<T1(Blackboard*, T2)> objFunction, std::function<T2(Blackboard*)> objFunction2)
+		: m_fpAction2(fp), m_ObjFunc1(objFunction), m_ObjFunc2(objFunction2) {}
+
+
+
+		virtual BehaviorState Execute(Blackboard* pBlackboard) override {
+
+			if (m_fpAction) {
+				m_CurrentState = m_fpAction(pBlackboard, m_ObjFunc(pBlackboard));
+				return m_CurrentState;
+			}
+			else if (m_fpAction2) {
+				auto t2{ m_ObjFunc2(pBlackboard)};
+				auto t1{ m_ObjFunc1(pBlackboard, t2) };
+
+				m_CurrentState = m_fpAction2(pBlackboard, t1);
+				return m_CurrentState;
+			}
+			return BehaviorState::Failure;
 		}
 
 	private:
-		std::function<BehaviorState(Blackboard*, T)> m_fpAction = nullptr;
-		std::function<T(Blackboard*)> m_ObjFunc;
+		std::function<BehaviorState(Blackboard*, T1)> m_fpAction = nullptr;
+		std::function<T1(Blackboard*)> m_ObjFunc = nullptr;
+
+
+		std::function<BehaviorState(Blackboard*, T1)> m_fpAction2 = nullptr;
+		std::function<T1(Blackboard*, T2)> m_ObjFunc1 = nullptr;
+		std::function<T2(Blackboard*)> m_ObjFunc2 = nullptr;
 	};
-
-
 
 
 	//-----------------------------------------------------------------

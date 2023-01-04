@@ -16,6 +16,7 @@
 #include "Inventory.h"
 #include "ExtendedStructs.h"
 #include "SurvivorAgentMemory.h"
+#include "framework/EliteGeometry/EGeometry2DUtilities.h"
 #include <memory>
 
 class IBaseInterface;
@@ -94,9 +95,9 @@ namespace BT_Functions
 		return influenceMap;
 	}
 
-	SurvivorAgentMemory* GetMemory(Elite::Blackboard* pBlackboard)
+	std::shared_ptr<SurvivorAgentMemory> GetMemory(Elite::Blackboard* pBlackboard)
 	{
-		SurvivorAgentMemory* pMemory{};
+		std::shared_ptr<SurvivorAgentMemory> pMemory{};
 		if (!pBlackboard->GetData("Memory", pMemory))
 			return nullptr;
 
@@ -210,14 +211,16 @@ namespace BT_Actions
 		auto pInventory{ GetInventory(pBlackboard) };
 		if (!pInventory)
 			return FAILURE;
-		std::cout << "Grabbing\n";
-		ItemInfo item;
+
+		auto pMemory{ GetMemory(pBlackboard) };
+		if (!pMemory)
+			return FAILURE;
+
+		ItemInfo item{};
 		for (const auto& entity : *pEntities)
 		{
-			if (pInventory->GrabItem(*entity))
+			if (pInventory->GrabItem(*entity, item) && pMemory->OnPickUpItem(item))
 			{
-				auto pMemory{ GetMemory(pBlackboard) };
-				pMemory->OnPickUpItem(*entity);
  				return SUCCESS;
 			}
 		}
@@ -248,54 +251,16 @@ namespace BT_Actions
 		return SUCCESS;
 	}
 
-	Elite::BehaviorState SetToLooting(Elite::Blackboard* pBlackboard)
-	{
-		auto pSurvivor{ GetSurvivor(pBlackboard) };
-		if (!pSurvivor)
-			return FAILURE;
-
-		pSurvivor->SetSurvivorState(SurvivorState::LOOTING);
-		return SUCCESS;
-	}
-
-	Elite::BehaviorState SetToExploring(Elite::Blackboard* pBlackboard)
-	{
-		auto pSurvivor{ GetSurvivor(pBlackboard) };
-		if (!pSurvivor)
-			return FAILURE;
-
-		pSurvivor->SetSurvivorState(SurvivorState::EXPLORING);
-		return SUCCESS;
-	}
-
-	Elite::BehaviorState SetToDefensive(Elite::Blackboard* pBlackboard)
-	{
-		auto pSurvivor{ GetSurvivor(pBlackboard) };
-		if (!pSurvivor)
-			return FAILURE;
-		pSurvivor->SetSurvivorState(SurvivorState::DEFENSIVE);
-		return SUCCESS;
-	}
-
-	Elite::BehaviorState SetToAggro(Elite::Blackboard* pBlackboard)
-	{
-		auto pSurvivor{ GetSurvivor(pBlackboard) };
-		if (!pSurvivor)
-			return FAILURE;
-
-		pSurvivor->SetSurvivorState(SurvivorState::AGGRO);
-		return SUCCESS;
-	}
-
-
 	Elite::BehaviorState EquipWeapon(Elite::Blackboard* pBlackboard)
 	{
 		auto pInventory{ GetInventory(pBlackboard) };
 		if (!pInventory)
 			return FAILURE;
 
-		pInventory->EquipWeapon();
-		return SUCCESS;
+		if(pInventory->EquipItem(eItemType::SHOTGUN) || pInventory->EquipItem(eItemType::PISTOL))
+			return SUCCESS;
+
+		return FAILURE;
 	}
 
 	Elite::BehaviorState ChangeToLookAt(Elite::Blackboard* pBlackboard)
@@ -334,7 +299,21 @@ namespace BT_Actions
 		if (!pSurvivor)
 			return FAILURE;
 
+		EAgentInfo eAgentInfo{ pSurvivor->GetInfo() };
+		const Elite::Vector2 agentForward{ eAgentInfo.GetForward() };
+		const Elite::Vector2 toTarget{ (target - eAgentInfo.Location).GetNormalized() };
+		const float angleBetween
+		{
+			Elite::ToDegrees(
+				Elite::AngleBetween(agentForward, toTarget))
+		};
+		constexpr float errorMargin{ 15.f };
+
+
 		pSurvivor->SetToLookAt(target);
+		if (angleBetween > errorMargin)
+			return RUNNING;
+
 		return SUCCESS;
 	}
 
@@ -361,6 +340,7 @@ namespace BT_Actions
 		pSurvivor->SetTarget(closestEntity->Location);
 		return SUCCESS;
 	}
+
 
 	Elite::BehaviorState GoTo(Elite::Blackboard* pBlackboard, Elite::Vector2 target)
 	{
@@ -410,86 +390,130 @@ namespace BT_Actions
 		if (!pInterface)
 			return { FLT_MAX, FLT_MAX };
 
-		std::vector<HouseInfo> houses{ pMemory->GetSeenHouses() };
-		HouseInfo* closestHouse{ &houses[0] };
+		auto seenHouses{ pMemory->GetSeenHouses() };
+
+		if (seenHouses.empty() || seenHouses.size() <= pMemory->GetClearedHouses().size())
+			return { FLT_MAX, FLT_MAX };
+
+		Elite::Vector2 closestPos{ FLT_MAX, FLT_MAX };
 		const Elite::Vector2 agentPos{ pInterface->Agent_GetInfo().Location };
-		for (auto& house : houses)
+		for (auto& house : seenHouses)
 		{
-			if (house.Center.Distance(agentPos) < closestHouse->Center.Distance(agentPos))
-				closestHouse = &house;
+			if (house.Center.Distance(agentPos) < closestPos.Distance(agentPos))
+				closestPos = house.Center;
 		}
 
-		return closestHouse->Center;
+		return closestPos;
 	}
-	HouseInfo* GetClosestHouse(Elite::Blackboard* pBlackboard)
+
+	Elite::Vector2 GetClosestUnvisitedHousePos(Elite::Blackboard* pBlackboard)
 	{
 		auto pMemory{ GetMemory(pBlackboard) };
 		if (!pMemory)
-			return nullptr;
+			return { FLT_MAX, FLT_MAX };
 
 		auto pInterface{ GetInterface(pBlackboard) };
 		if (!pInterface)
-			return nullptr;
+			return { FLT_MAX, FLT_MAX };
 
-		std::vector<HouseInfo> houses{ pMemory->GetSeenHouses() };
-		HouseInfo* closestHouse{ &houses[0] };
+		auto seenHouses{ pMemory->GetSeenHouses() };
+
+		if (seenHouses.empty() || seenHouses.size() <= pMemory->GetClearedHouses().size())
+			return { FLT_MAX, FLT_MAX };
+		
+		Elite::Vector2 closestPos{ FLT_MAX, FLT_MAX };
 		const Elite::Vector2 agentPos{ pInterface->Agent_GetInfo().Location };
-		for (auto& house : houses)
+		for (auto& house : seenHouses)
 		{
-			if (house.Center.Distance(agentPos) < closestHouse->Center.Distance(agentPos))
-				closestHouse = &house;
+			if (!pMemory->HasVisitedHouse(house) && house.Center.Distance(agentPos) < closestPos.Distance(agentPos))
+				closestPos = house.Center;
 		}
 
-		return closestHouse;
+		return closestPos;
 	}
 
-	HouseInfo* GetClosestHouseInFOV(Elite::Blackboard* pBlackboard)
+
+	eItemType GetNeededItemType(Elite::Blackboard* pBlackboard)
 	{
-		auto housesInFOV{ GetHousesInFOV(pBlackboard) };
-		if (!housesInFOV || housesInFOV->empty())
-			return nullptr;
+		const auto& pSurvivor{ GetSurvivor(pBlackboard) };
 
-		auto pInterface{ GetInterface(pBlackboard) };
-		if (!pInterface)
-			return nullptr;
+		if (pSurvivor->GetInfo().Energy < pSurvivor->GetInfo().LowEnergyThreshold)
+			return eItemType::FOOD;
 
-		HouseInfo* closestHouse{ housesInFOV->front() };
-		const Elite::Vector2 agentPos{ pInterface->Agent_GetInfo().Location };
-		for (const auto& house : *housesInFOV)
-		{
-			if (house->Center.Distance(agentPos) < closestHouse->Center.Distance(agentPos))
-				closestHouse = house;
-		}
+		if (pSurvivor->GetInfo().Health < pSurvivor->GetInfo().LowHealthThreshold)
+			return eItemType::MEDKIT;
 
-		return closestHouse;
+		return eItemType::INVALID;
 	}
 
 	Elite::Vector2 GetClosestKnownItemPos(Elite::Blackboard* pBlackboard)
 	{
+		//Get Necessary Data
 		auto pMemory{ GetMemory(pBlackboard) };
 		if (!pMemory)
 			return { FLT_MAX, FLT_MAX };
-
-
 		ISurvivorAgent* pSurvivor{ GetSurvivor(pBlackboard) };
 		if (!pSurvivor)
 			return { FLT_MAX, FLT_MAX };
-
-		auto& items{ pMemory->GetSeenItems() };
+		auto& items{ pMemory->GetLocatedItems() };
 		if (items.empty()) 	
 			return { FLT_MAX, FLT_MAX };
 
-
+		//Find closest located item
 		Elite::Vector2 closestItem{ FLT_MAX, FLT_MAX };
-
+		const auto& pInfluenceMap(pMemory->GetInfluenceMap());
+		const auto& agentInfo{ pSurvivor->GetInfo() };
 		for (auto& item : items)
 		{
-			if (pSurvivor->GetInfo().Location.DistanceSquared(item.Location) < pSurvivor->GetInfo().Location.DistanceSquared(closestItem))
-				closestItem = item.Location;
+			const auto& itemNode{ pInfluenceMap->GetNode(item) };
+
+			if (agentInfo.Location.DistanceSquared(itemNode->GetPosition()) <
+				agentInfo.Location.DistanceSquared(closestItem))
+			{
+				closestItem = itemNode->GetPosition();
+			}
 		}
 
-		if (closestItem.x != FLT_MAX)
-			return closestItem;
+		return closestItem;
+	}
+
+	Elite::Vector2 GetClosestKnownItemTypePos(Elite::Blackboard* pBlackboard, eItemType type)
+	{
+		std::cout << "Getting item type; " << int(type) << "\n";
+
+		if (type == eItemType::INVALID)
+			return { FLT_MAX, FLT_MAX };
+
+		//Get Necessary Data
+		auto pMemory{ GetMemory(pBlackboard) };
+		if (!pMemory)
+			return { FLT_MAX, FLT_MAX };
+		ISurvivorAgent* pSurvivor{ GetSurvivor(pBlackboard) };
+		if (!pSurvivor)
+			return { FLT_MAX, FLT_MAX };
+		auto& itemIndices{ pMemory->GetLocatedItems() };
+		if (itemIndices.empty())
+			return { FLT_MAX, FLT_MAX };
+
+		//Find closest located item
+		Elite::Vector2 closestItem{ FLT_MAX, FLT_MAX };
+		const auto& pInfluenceMap(pMemory->GetInfluenceMap());
+		const auto& agentInfo{ pSurvivor->GetInfo() };
+		for (auto& itemIdx : itemIndices)
+		{
+			const auto& itemNode{ pInfluenceMap->GetNode(itemIdx) };
+
+			if (itemNode->GetItem() != type)
+				continue;
+
+			if (agentInfo.Location.DistanceSquared(itemNode->GetPosition()) <
+				agentInfo.Location.DistanceSquared(closestItem))
+			{
+				closestItem = itemNode->GetItemPos();
+			}
+		}
+
+		return closestItem;
 	}
 
 	Elite::BehaviorState ChangeToExplore(Elite::Blackboard* pBlackboard)
@@ -498,9 +522,98 @@ namespace BT_Actions
 		if (!pSurvivor)
 			return FAILURE;
 
-
 		pSurvivor->SetToExplore();
 		return SUCCESS;
+	}
+
+	Elite::BehaviorState Heal(Elite::Blackboard* pBlackboard)
+	{
+		auto pInventory{ GetInventory(pBlackboard) };
+		if (!pInventory)
+			return FAILURE;
+
+		if(pInventory->UseItem(eItemType::MEDKIT))
+			return SUCCESS;
+
+		return FAILURE;
+	}
+
+	Elite::BehaviorState Eat(Elite::Blackboard* pBlackboard)
+	{
+		auto pInventory{ GetInventory(pBlackboard) };
+		if (!pInventory)
+			return FAILURE;
+
+		if (pInventory->UseItem(eItemType::FOOD))
+			return SUCCESS;
+
+		return FAILURE;
+	}
+
+	Elite::BehaviorState DropGarbage(Elite::Blackboard* pBlackboard)
+	{
+		auto pInventory{ GetInventory(pBlackboard) };
+		if (!pInventory)
+			return FAILURE;
+
+		if (pInventory->EquipItem(eItemType::GARBAGE) && pInventory->DropItem())
+			return SUCCESS;
+
+		return FAILURE;
+	}
+
+	Elite::BehaviorState DropLeastValuableItem(Elite::Blackboard* pBlackboard)
+	{
+		auto pInventory{ GetInventory(pBlackboard) };
+		if (!pInventory)
+			return FAILURE;
+
+		//Drop item with least value
+		if(pInventory->DropItem(pInventory->GetLowestValueItem()))
+			return SUCCESS;
+
+		return FAILURE;
+	}
+
+	Elite::BehaviorState DropEmptyItems(Elite::Blackboard* pBlackboard)
+	{
+		auto pInventory{ GetInventory(pBlackboard) };
+		if (!pInventory)
+			return FAILURE;
+
+		pInventory->DropEmptyItems();
+		return SUCCESS;
+	}
+
+	Elite::BehaviorState ForceGrab(Elite::Blackboard* pBlackboard)
+	{
+		auto pEntities{ GetEntitiesInFOV(pBlackboard) };
+		if (!pEntities || pEntities->empty())
+			return FAILURE;
+
+		auto pInventory{ GetInventory(pBlackboard) };
+		if (!pInventory)
+			return FAILURE;
+		std::cout << "Grabbing\n";
+
+		if (pInventory->IsFull())
+		{
+			//Drop item with least value
+			pInventory->DropItem(pInventory->GetLowestValueItem());
+		}
+
+		ItemInfo item{};
+		for (const auto& entity : *pEntities)
+		{
+			if (pInventory->GrabItem(*entity, item))
+			{
+				auto pMemory{ GetMemory(pBlackboard) };
+				pMemory->OnPickUpItem(item);
+				return SUCCESS;
+			}
+		}
+
+		return FAILURE;
 	}
 }
 
@@ -524,7 +637,6 @@ namespace BT_Conditions
 		{
 			if (pEntity->Type == eEntityType::ENEMY)
 			{
-				std::cout << "EnemyInFOV!\n";
 				return true;
 			}
 		}
@@ -547,6 +659,7 @@ namespace BT_Conditions
 
 		return false;
 	}
+
 
 	bool IsInRangeOfItem(Elite::Blackboard* pBlackboard)
 	{
@@ -579,13 +692,34 @@ namespace BT_Conditions
 		if (!pInventory)
 			return false;
 		
-		return pInventory->HasWeapon();
+		return pInventory->HasItem(eItemType::SHOTGUN) || pInventory->HasItem(eItemType::PISTOL);
 	}
 
 	bool HasTarget(Elite::Blackboard* pBlackboard)
 	{
 		std::shared_ptr<Elite::Vector2> t;
 		return GetTarget(pBlackboard, t);
+	}
+
+	bool TAlignedWithTarget(Elite::Blackboard* pBlackboard, const Elite::Vector2& target)
+	{
+		auto pSurvivor{ GetSurvivor(pBlackboard) };
+		if (!pSurvivor)
+			return false;
+
+		EAgentInfo eAgentInfo{ pSurvivor->GetInfo() };
+		const Elite::Vector2 agentForward{ eAgentInfo.GetForward() };
+		const Elite::Vector2 toTarget{ (target - eAgentInfo.Location).GetNormalized() };
+
+		const float angleBetween
+		{ 
+			Elite::ToDegrees(
+				Elite::AngleBetween(agentForward, toTarget)) 
+		};
+
+		constexpr float errorMargin{ 15.f };
+
+		return angleBetween < errorMargin;
 	}
 
 	bool AlignedWithTarget(Elite::Blackboard* pBlackboard)
@@ -605,7 +739,7 @@ namespace BT_Conditions
 		const Elite::Vector2 agentForward{ eAgentInfo.GetForward() };
 		const Elite::Vector2 toTarget{ (*t - agentPos).GetNormalized() };
 
-		const float angleBetween{ Elite::ToDegrees(acos(agentForward.Dot(toTarget))) };
+		const float angleBetween{ Elite::ToDegrees(Elite::AngleBetween(agentForward, toTarget)) };
 		constexpr float errorMargin{ 15.f };
 
 		return angleBetween < errorMargin;
@@ -654,6 +788,9 @@ namespace BT_Conditions
 				++scannedCount;
 		}
 
+		if (scannedCount < pInfluenceMap->GetConnections(node->GetIndex()).size() / 2)
+			std::cout << "Area not scanned\n";
+
 		return scannedCount > pInfluenceMap->GetConnections(node->GetIndex()).size() / 2;
 	}
 
@@ -678,6 +815,7 @@ namespace BT_Conditions
 			{
 				if (pInfluenceMap->GetNode(connection->GetTo())->GetInfluence() < -10)
 				{
+					std::cout << "Danger near!\n";
 					return true;
 				}
 			}
@@ -790,11 +928,6 @@ namespace BT_Conditions
 		if (!pMemory)
 			return false;
 
-		if (!pMemory->GetSeenHouses().empty())
-		{
-			std::cout << "has seen house\n";
-				return true;
-		}
 		return !pMemory->GetSeenHouses().empty();
 	}
 
@@ -814,9 +947,80 @@ namespace BT_Conditions
 		if (!pMemory)
 			return false;
 
-		return pMemory->GetVisitedHouses().size() <= pMemory->GetSeenHouses().size() ;
+		return pMemory->GetClearedHouses().size() >= pMemory->GetSeenHouses().size() ;
 	}
 
+	bool IsHealthLow(Elite::Blackboard* pBlackboard)
+	{
+		const auto& pInterface{ GetInterface(pBlackboard) };
+		if (!pInterface)
+			return false;
+
+		return pInterface->Agent_GetInfo().Health < 5.0f;
+	}
+
+
+	bool IsEnergyLow(Elite::Blackboard* pBlackboard)
+	{
+		const auto& pInterface{ GetInterface(pBlackboard) };
+		if (!pInterface)
+			return false;
+
+		return pInterface->Agent_GetInfo().Energy < 5.0f;
+	}
+
+	bool HasGarbage(Elite::Blackboard* pBlackboard)
+	{
+		const auto& pInventory{ GetInventory(pBlackboard) };
+		if (!pInventory)
+			return false;
+
+		return pInventory->HasItem(eItemType::GARBAGE);
+	}
+
+	bool NeedsItem(Elite::Blackboard* pBlackboard)
+	{
+		const auto& pSurvivor{ GetSurvivor(pBlackboard) };
+
+		if (pSurvivor->GetInfo().Energy < pSurvivor->GetInfo().LowEnergyThreshold
+			|| pSurvivor->GetInfo().Health < pSurvivor->GetInfo().LowHealthThreshold)
+		{
+
+			std::cout << "Needs item!\n";
+			return true;
+		}
+			
+
+		return false;
+	}
+
+	bool HasEmptyItem(Elite::Blackboard* pBlackboard)
+	{
+		const auto& pInventory{ GetInventory(pBlackboard) };
+		if (!pInventory)
+			return false;
+
+		return pInventory->HasEmptyItem();
+	}
+
+	bool IsInHouse(Elite::Blackboard* pBlackboard)
+	{
+		const auto& pSurvivor{ GetSurvivor(pBlackboard) };
+		if (!pSurvivor)
+			return false;
+
+		const auto& housesInFOV{ GetHousesInFOV(pBlackboard) };
+		if (!housesInFOV || housesInFOV->empty())
+			return false;
+
+		for (const auto& house : *housesInFOV)
+		{
+			if (IsPointInRect(pSurvivor->GetInfo().Location, house->Center, house->Size))
+				return true;
+		}
+
+		return false;
+	}
 }
 
 #endif

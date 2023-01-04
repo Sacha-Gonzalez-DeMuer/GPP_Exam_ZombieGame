@@ -44,6 +44,7 @@ namespace Elite
 
 		int GetNodeIdxAtWorldPos(const Elite::Vector2& pos) const override;
 		inline std::unordered_set<int> GridGraph<T_NodeType, T_ConnectionType>::GetNodeIndicesInRadius(const Elite::Vector2& pos, float radius) const;
+		inline std::unordered_set<int> GridGraph<T_NodeType, T_ConnectionType>::GetNodeIndicesInRect(const Elite::Vector2& pos, const Elite::Vector2& size) const;
 
 		void AddConnectionsToAdjacentCells(int col, int row);
 		void AddConnectionsToAdjacentCells(int idx);
@@ -69,6 +70,7 @@ namespace Elite
 		float CalculateConnectionCost(int fromIdx, int toIdx) const;
 
 		void GetNodesInRadiusRecursive(T_NodeType* node, std::unordered_set<int>& idxCache, float radius, const Vector2& center) const;
+		void GetNodesInSquareRecursive(T_NodeType* node, std::unordered_set<int>& idxCache, const Vector2& position, const Vector2& size) const;
 		friend class GraphRenderer;
 
 	};
@@ -315,6 +317,40 @@ namespace Elite
 	}
 
 	template<class T_NodeType, class T_ConnectionType>
+	void GridGraph<T_NodeType, T_ConnectionType>::GetNodesInSquareRecursive(T_NodeType* node, std::unordered_set<int>& idxCache, const Vector2& position, const Vector2& size) const
+	{
+		// Calculate the half width and half height of the square
+		float halfWidth = size.x / 2.0f;
+		float halfHeight = size.y / 2.0f;
+
+		// Check if the current node is within the square
+		if (node->GetPosition().x >= position.x - halfWidth && node->GetPosition().x <= position.x + halfWidth &&
+			node->GetPosition().y >= position.y - halfHeight && node->GetPosition().y <= position.y + halfHeight)
+		{
+			// Add the index of the current node to the cache
+			idxCache.insert(node->GetIndex());
+		}
+		else
+		{
+			// If the current node is not within the square, return without processing its connections
+			return;
+		}
+
+		// Recursively process the child nodes
+		for (const auto& connection : GetConnections(node->GetIndex()))
+		{
+			// Check if the child node has already been processed
+			if (idxCache.count(connection->GetTo()) > 0)
+			{
+				continue;
+			}
+
+			auto childNode{ GetNode(connection->GetTo()) };
+			GetNodesInSquareRecursive(childNode, idxCache, position, size);
+		}
+	}
+
+	template<class T_NodeType, class T_ConnectionType>
 	inline std::unordered_set<int> GridGraph<T_NodeType, T_ConnectionType>::GetNodeIndicesInRadius(const Elite::Vector2& pos, float radius) const
 	{
 		int idx = GetNodeIdxAtWorldPos(pos);
@@ -332,6 +368,23 @@ namespace Elite
 		return idxCache;
 	}
 
-	
+
+	template<class T_NodeType, class T_ConnectionType>
+	inline std::unordered_set<int> GridGraph<T_NodeType, T_ConnectionType>::GetNodeIndicesInRect(const Elite::Vector2& pos, const Elite::Vector2& size) const
+	{
+		int idx = GetNodeIdxAtWorldPos(pos);
+		
+		std::unordered_set<int> idxCache{ idx };
+		if (idx == invalid_node_index)
+			return idxCache;
+
+		idxCache.clear();
+
+		const auto& centerNode{ GetNode(idx) };
+
+		GetNodesInSquareRecursive(centerNode, idxCache, pos, size);
+
+		return idxCache;
+	}
 }
 

@@ -72,7 +72,8 @@ enum class eItemType
 	RANDOM_DROP_WITH_CHANCE, //Internal Only
 
 	//@END
-	_LAST = GARBAGE
+	_LAST = GARBAGE,
+	INVALID = -1
 };
 
 enum class eEnemyType

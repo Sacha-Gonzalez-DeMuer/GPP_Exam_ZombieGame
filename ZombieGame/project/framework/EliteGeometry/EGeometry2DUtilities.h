@@ -123,6 +123,16 @@ namespace Elite
 		}
 		return true;
 	}
+
+	constexpr auto IsPointInRect(const Vector2& pos, const Vector2& rectPos, const Vector2& rectDim)
+	{
+		// Check if the point is within the bounds of the rectangle.
+		return pos.x >= rectPos.x && pos.x <= rectPos.x + rectDim.x &&
+			pos.y >= rectPos.y && pos.y <= rectPos.y + rectDim.y;
+	}
+
+
+
 	/*! Check if point is on a line */
 	inline auto IsPointOnLine(const Vector2& lineStart, const Vector2& lineEnd, const Vector2& point)
 	{

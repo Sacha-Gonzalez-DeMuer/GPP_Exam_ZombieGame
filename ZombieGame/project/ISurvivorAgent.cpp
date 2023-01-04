@@ -12,22 +12,22 @@ using namespace BT_Actions;
 
 ISurvivorAgent::ISurvivorAgent(IExamInterface* pInterface)
 	: m_pInventory{new Inventory(pInterface, pInterface->Inventory_GetCapacity())}
-	, m_pMemory{new SurvivorAgentMemory(pInterface)}
+	, m_pMemory{std::make_shared<SurvivorAgentMemory>(pInterface)}
 	, m_pInterface{pInterface}
+	, SteeringAgent(pInterface)
 {
+	SteeringAgent::Initialize(m_pMemory);
 	Initialize(pInterface);
 }
 
 ISurvivorAgent::~ISurvivorAgent()
 {
-	delete m_pMemory;
 	m_pMemory = nullptr;
 }
 
 void ISurvivorAgent::Initialize(IExamInterface* pInterface)
 {
 	InitializeBehaviorTree(pInterface);
-	InitializeSteering();
 }
 
 void ISurvivorAgent::Update(float deltaTime, IExamInterface* pInterface, SteeringPlugin_Output& steering)
@@ -45,95 +45,7 @@ void ISurvivorAgent::Update(float deltaTime, IExamInterface* pInterface, Steerin
 
 void ISurvivorAgent::Render(float deltaTime, IExamInterface* pInterface)
 {
-	EAgentInfo eAgentInfo = pInterface->Agent_GetInfo();
-
-	Elite::Vector2 pos{ pInterface->Agent_GetInfo().Location };
-	Elite::Vector2 lookDir{ eAgentInfo.GetForward() };
-	Elite::Vector2 scanPos{ pos + (lookDir * eAgentInfo.FOV_Range) };
-	pInterface->Draw_Segment(pos, scanPos, {1,1,1});
-
 	m_pMemory->DebugRender(pInterface);
-}
-
-void ISurvivorAgent::SetToWander(bool autoOrient, bool sprint)
-{
-	m_pCurrentSteering = m_pWander;
-}
-
-void ISurvivorAgent::SetToSeek(const Vector2& target)
-{
-	m_pSeek->SetTarget(target);
-	m_pCurrentSteering = m_pSeek;
-}
-
-void ISurvivorAgent::SetTarget(const Elite::Vector2& target)
-{
-	m_Target = std::make_shared<Elite::Vector2>(target);
-}
-
-void ISurvivorAgent::SetToLookAt()
-{
-	if (!m_Target) return;
-
-	m_pLookAt->SetTarget(*m_Target);
-	m_pCurrentSteering = m_pLookAt;
-}
-
-void ISurvivorAgent::SetToLookAt(const Elite::Vector2& target)
-{
-	m_pLookAt->SetTarget(target);
-	m_pCurrentSteering = m_pLookAt;
-}
-
-void ISurvivorAgent::SetToLookAround()
-{
-	m_pCurrentSteering = m_pLookAround;
-}
-
-void ISurvivorAgent::SetToFlee()
-{
-	m_pFlee->SetTarget(*m_Target);
-	m_pCurrentSteering = m_pFlee;
-}
-void ISurvivorAgent::SetToFleeLookingAt()
-{
-	m_pWander->SetAutoOrient(false);
-	m_pFlee->SetTarget(*m_Target);
-	m_pLookAt->SetTarget(*m_Target);
-	m_pCurrentSteering = m_pFleeLookingAt;
-}
-
-void ISurvivorAgent::SetToFleeLookingAt(const Elite::Vector2& target)
-{
-	m_pFlee->SetTarget(target);
-	m_pLookAt->SetTarget(target);
-	m_pCurrentSteering = m_pFleeLookingAt;
-}
-
-void ISurvivorAgent::SetToExplore()
-{
-	m_pCurrentSteering = m_pExplore;
-}
-
-bool ISurvivorAgent::SetToFleeLookingAround()
-{
-	if (!m_Target)
-		return false;
-	m_pFlee->SetTarget(*m_Target);
-	m_pCurrentSteering = m_pFleeLookingAround;
-	return true;
-}
-
-void ISurvivorAgent::SetToFleeLookingAround(const Elite::Vector2& target)
-{
-	m_pFlee->SetTarget(target);
-	m_pCurrentSteering = m_pFleeLookingAround;
-}
-
-
-EAgentInfo ISurvivorAgent::GetInfo() const
-{
-	return m_pInterface->Agent_GetInfo();
 }
 
 HouseInfo* ISurvivorAgent::GetNearestHouse(const Elite::Vector2& fromPos) const
@@ -200,7 +112,8 @@ void ISurvivorAgent::InitializeBehaviorTree(IExamInterface* pInterface)
 	BehaviorTree* pBehaviorTree{ new BehaviorTree(pBlackboard, new BehaviorSelector
 	(
 		{
-			new BehaviorSequence //Self Defence Sequence
+			//============= SELF DEFENCE SEQUENCE =============//
+			new BehaviorSequence
 			({
 				new BehaviorConditional(IsDangerNear),
 
@@ -215,7 +128,6 @@ void ISurvivorAgent::InitializeBehaviorTree(IExamInterface* pInterface)
 							({
 								new BehaviorSequence
 								({
-									new BehaviorConditional(HasWeapon),
 									new BehaviorAction(EquipWeapon),
 									new BehaviorWhile(new NotDecorator(AlignedWithTarget), new BehaviorAction(ChangeToLookAt)),
 									new BehaviorAction(UseItem)
@@ -229,64 +141,115 @@ void ISurvivorAgent::InitializeBehaviorTree(IExamInterface* pInterface)
 					}),
 			}),
 
-			new BehaviorSequence	
+
+			new BehaviorSelector //Survival Selector
 			({
-				new NotDecorator(IsInventoryFull),
-
-				new BehaviorSelector //Looting Selector
+				new BehaviorSequence //Health sequence
 				({
-					new BehaviorSequence
-					({
-						new BehaviorConditional(IsRewardNear),
-						new BehaviorSelector
-						({
-							new BehaviorSequence
-							({
-								new NotDecorator(IsItemInFOV),
-								new BehaviorAction(ChangeToLookAround)
-							}),
+					new BehaviorConditional(IsHealthLow),
+					new BehaviorAction(Heal)
+				}),
 
-							new BehaviorSequence
-							({
-								new BehaviorAction(GoToClosestEntity),
-								new BehaviorAction(GrabItem)
-							}),
-						}),
-					}),
-
-					new BehaviorSequence
-					({
-						new NotDecorator(AreaScanned),
-						new BehaviorAction(ChangeToLookAround)
-					}),
-
-					new BehaviorSequence
-					({
-						new BehaviorConditional(HasSeenItem),
-						new TBehaviorAction<Elite::Vector2>(GoTo, GetClosestKnownItemPos)
-					})
+				new BehaviorSequence
+				({
+					new BehaviorConditional(IsEnergyLow),
+					new BehaviorAction(Eat)
 				}),
 			}),
+
+
+			//============= LOOTING SELECTOR =============//
+			new BehaviorSelector 
+			({
+				new BehaviorSequence //Urgent Looting Sequence
+				({
+					new BehaviorConditional(NeedsItem),
+
+					new BehaviorSelector //try finding needed item
+					({
+						new TBehaviorAction<Elite::Vector2, eItemType>(GoTo, GetClosestKnownItemTypePos, GetNeededItemType),
+						new TBehaviorAction<Elite::Vector2>(GoTo, GetClosestUnvisitedHousePos),
+					}),
+
+
+					new BehaviorSelector
+					({
+						new BehaviorSequence
+						({
+							new BehaviorConditional(IsInventoryFull),
+							new BehaviorAction(DropLeastValuableItem)
+						}),
+
+						new BehaviorAction(GrabItem)
+					}),
+
+				}),
+
+				new BehaviorSequence //Free looting Sequence
+				({
+					new NotDecorator(IsInventoryFull),
+					new BehaviorConditional(HasSeenItem),
+					new TBehaviorAction<Elite::Vector2>(GoTo, GetClosestKnownItemPos),
+					new BehaviorAction(GrabItem),
+
+					//new BehaviorSequence //Reward Near
+					//	({
+					//		new BehaviorSelector
+					//		({
+					//			new BehaviorSequence
+					//			({
+					//				new NotDecorator(IsItemInFOV),
+					//				new BehaviorAction(ChangeToLookAround)
+					//			}),
+
+					//			new BehaviorSequence
+					//			({
+					//				new BehaviorAction(GoToClosestEntity),
+					//				new BehaviorAction(GrabItem)
+					//			}),
+					//		}),
+					//	}),
+
+				}),
+			}), 
 			
 
-			new BehaviorSelector //Exploration Selector
+			//============= INVENTORY MANAGEMENT SELECTOR =============//
+			new BehaviorSelector
 			({
 				new BehaviorSequence
-				({
-					new BehaviorConditional(IsHouseInFOV),
-					new TNotDecorator<HouseInfo*>(IsHouseVisited, GetClosestHouseInFOV),
-					new TBehaviorAction<Elite::Vector2>(GoTo, GetClosestHousePos)
+				({	
+					new BehaviorConditional(HasGarbage),
+					new BehaviorAction(DropGarbage)
 				}),
 
 				new BehaviorSequence
+				({
+					new BehaviorConditional(HasEmptyItem),
+					new BehaviorAction(DropEmptyItems)
+				})
+			}),
+
+
+
+			//============= EXPLORATION SELECTOR =============//
+			new BehaviorSelector
+			({
+				new BehaviorSequence //Scan Area
+				({
+					new NotDecorator(AreaScanned),
+					new BehaviorAction(ChangeToLookAround)
+				}),
+
+				new BehaviorSequence //Visit unvisited houses
 				({
 					new BehaviorConditional(HasSeenHouse),
 					new NotDecorator(HasVisitedAllSeenHouses),
-					new TBehaviorAction<Elite::Vector2>(GoTo, GetClosestHousePos)
+					new TBehaviorAction<Elite::Vector2>(GoTo, GetClosestUnvisitedHousePos)
 				}),
-			}),
 
-			new BehaviorAction(ChangeToExplore)
+				new BehaviorAction(ChangeToExplore)
+			}),
 		}
 	)) 
 	};
@@ -307,34 +270,6 @@ Elite::Blackboard* ISurvivorAgent::CreateBlackboard(IExamInterface* pInterface)
 	pBlackboard->AddData("HousesInFOV", &m_pHousesInFOV);
 	pBlackboard->AddData("InfluenceMap", m_pMemory->GetInfluenceMap());
 	pBlackboard->AddData("Memory", m_pMemory);
-	pBlackboard->AddData("State", &m_SurvivorState);
 
 	return pBlackboard;
 }
-
-void ISurvivorAgent::InitializeSteering()
-{
-	m_pWander = std::make_shared<Wander>();
-	m_pWander->SetAutoOrient(false);
-
-	m_pSeek = std::make_shared<Seek>();
-	m_pLookAround = std::make_shared<LookAround>();
-	m_pLookAt = std::make_shared<LookAt>();
-	m_pFlee = std::make_shared<Flee>();
-	m_pFlee->SetRadius(1000);
-
-	m_pFleeLookingAt = std::make_shared<AdditiveSteering>(std::vector<ISteeringBehavior*>
-	{m_pFlee.get(), m_pLookAt.get()});
-	m_pFleeLookingAt->SetRunMode(true);
-	m_pFleeLookingAt->SetAutoOrient(false);
-
-	m_pFleeLookingAround = std::make_shared<AdditiveSteering>(std::vector<ISteeringBehavior*>
-	{m_pFlee.get(), m_pLookAround.get(), m_pWander.get()});
-	m_pFleeLookingAround->SetRadius(GetInfo().FOV_Range * 2);
-	m_pFleeLookingAround->SetAutoOrient(false);
-
-	m_pExplore = std::make_shared<Explore>();
-	std::dynamic_pointer_cast<Explore>(m_pExplore)->SetInfluenceMap(m_pMemory->GetInfluenceMap());
-	m_pExplore->SetRunMode(true);
-}
-

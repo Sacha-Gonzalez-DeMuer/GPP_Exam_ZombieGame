@@ -47,7 +47,12 @@ namespace Elite
 
 			WorldNode* worldNode{ static_cast<WorldNode*>(pNode) };
 			if (worldNode && pNode->GetScanned())
+			{
 				pInterface->Draw_Point(pNode->GetPosition(), width, { 1,1,1 }, depth - .1f);
+				if (worldNode->HasItem())
+					pInterface->Draw_Point(pNode->GetPosition(), width, { 0,1,0 }, depth - .2f);
+			}
+				
 
 
 

@@ -6,19 +6,17 @@ struct EAgentInfo : AgentInfo
 {
 	EAgentInfo(const AgentInfo& info) : AgentInfo(info) {}
 
+
+    float LowEnergyThreshold{ 6.0f };
+    float LowHealthThreshold{ 5.0f };
+
 	Elite::Vector2 GetForward() const { return Elite::Vector2(cos(Orientation), sin(Orientation)); };
 	void SetForward(Elite::Vector2 forward) { Orientation = atan2(forward.y, forward.x); };
 };
 
-
-struct EntityInfoHash 
+struct EHouseInfo : HouseInfo
 {
-    std::size_t operator()(const EntityInfo& ei) const
-    {
-        std::size_t h1 = std::hash<eEntityType>()(ei.Type);
-        std::size_t h2 = std::hash<float>()(ei.Location.x);
-        std::size_t h3 = std::hash<float>()(ei.Location.y);
+	EHouseInfo(const HouseInfo& info) : HouseInfo(info){}
 
-        return h1 ^ (h2 << 1) ^ (h3 << 2);
-    }
+	bool Cleared{false};
 };
