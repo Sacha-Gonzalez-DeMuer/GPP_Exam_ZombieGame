@@ -107,37 +107,53 @@ protected:
 	float m_WanderAngle = 0.f;
 };
 
-///////////////////////////////////////
-//EXPLORE
-//****
-class SurvivorAgentMemory;
-class Explore : public Wander {
+
+//===========================NAVMESH NAVIGATION===================\\
+
+class InfluenceNavigation : public Wander {
+
+protected:
+	using InfluenceGrid = Elite::GridGraph<Elite::WorldNode, Elite::GraphConnection>;
+	Elite::InfluenceMap<InfluenceGrid>* m_pInfluenceMap{ nullptr };
+	std::shared_ptr<SurvivorAgentMemory> m_pMemory{ nullptr };
 	
 public:
-	Explore() = default;
-	virtual ~Explore() = default;
+	InfluenceNavigation() = default;
+	virtual ~InfluenceNavigation() {
+		m_pInfluenceMap = nullptr;
+	};
 
-
-	using InfluenceGrid = Elite::GridGraph<Elite::WorldNode, Elite::GraphConnection>;
-
-	SteeringPlugin_Output CalculateSteering(float deltaT, const IExamInterface* pInterface) override;
-	void Initialize(std::shared_ptr<SurvivorAgentMemory> pMemory) 
+	void Initialize(std::shared_ptr<SurvivorAgentMemory> pMemory)
 	{
 		SetMemory(pMemory);
 		SetInfluenceMap(pMemory->GetInfluenceMap());
 	}
 
-protected:
-	Elite::InfluenceMap<InfluenceGrid>* m_pInfluenceMap{nullptr};
-	std::shared_ptr<SurvivorAgentMemory> m_pMemory{ nullptr };
+
+	virtual SteeringPlugin_Output CalculateSteering(float deltaT, const IExamInterface* pInterface) { return SteeringPlugin_Output(); };
 
 	void SetInfluenceMap(Elite::InfluenceMap<InfluenceGrid>* influenceMap) { m_pInfluenceMap = influenceMap; };
 	void SetMemory(std::shared_ptr<SurvivorAgentMemory> pMemory) { m_pMemory = pMemory; };
+
 };
 
 
 ///////////////////////////////////////
 //EXPLORE
+//****
+class SurvivorAgentMemory;
+class Explore : public InfluenceNavigation {
+	
+public:
+	Explore() = default;
+	virtual ~Explore() = default;
+
+	SteeringPlugin_Output CalculateSteering(float deltaT, const IExamInterface* pInterface) override;
+};
+
+
+///////////////////////////////////////
+//EXPLORE AREA
 //****
 class ExploreArea : public Explore {
 
@@ -145,14 +161,30 @@ public:
 	ExploreArea() = default;
 	virtual ~ExploreArea() = default;
 
+	SteeringPlugin_Output CalculateSteering(float deltaT, const IExamInterface* pInterface) override;
+	void SetArea(std::unordered_set<int> area) { m_AreaToExplore = area; };
+	void AddToArea(std::unordered_set<int> toAdd) { m_AreaToExplore.insert(toAdd.begin(), toAdd.end()); };
+	std::unordered_set<int> GetArea() { return m_AreaToExplore; };
+	bool IsExplored() { return m_Explored; };
+protected:
+	std::unordered_set<int> m_AreaToExplore{};
+	bool m_Explored{ false };
+};
 
-	using InfluenceGrid = Elite::GridGraph<Elite::WorldNode, Elite::GraphConnection>;
+///////////////////////////////////////
+//NAVIGATE INFLUENCE
+//****
+class NavigateInfluence : public InfluenceNavigation
+{
+public:
+	NavigateInfluence() = default;
+	virtual ~NavigateInfluence() = default;
 
 	SteeringPlugin_Output CalculateSteering(float deltaT, const IExamInterface* pInterface) override;
-	void AddToArea(std::unordered_set<int> toAdd) { m_pAreaToExplore.insert(toAdd.begin(), toAdd.end()); };
-protected:
-	std::unordered_set<int> m_pAreaToExplore;
 };
+
+//==============================================\\
+		//===========================\\
 
 ///////////////////////////////////////
 //EVADE
@@ -163,7 +195,6 @@ public:
 	virtual ~Evade() = default;
 
 	SteeringPlugin_Output CalculateSteering(float deltaT, const IExamInterface* pInterface) override;
-
 };
 
 
@@ -206,4 +237,6 @@ public:
 	SteeringPlugin_Output CalculateSteering(float deltaT, const IExamInterface* pInterface) override;
 
 };
+
+
 #endif

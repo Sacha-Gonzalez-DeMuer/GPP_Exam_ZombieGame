@@ -19,4 +19,15 @@ struct EHouseInfo : HouseInfo
 	EHouseInfo(const HouseInfo& info) : HouseInfo(info){}
 
 	bool Cleared{false};
+
+	bool operator==(const EHouseInfo& other) const
+	{
+		return Center == other.Center && Size == other.Size;
+	}
+
+	bool operator==(HouseInfo&& other) const
+	{
+		return Center == other.Center && Size == other.Size;
+	}
 };
+

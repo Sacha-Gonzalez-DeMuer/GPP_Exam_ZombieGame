@@ -182,6 +182,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="BT_Actions.h" />
+    <ClInclude Include="BT_BlackboardGetters.h" />
+    <ClInclude Include="BT_Conditions.h" />
     <ClInclude Include="framework\Agent\BaseAgent.h" />
     <ClInclude Include="Behaviors.h" />
     <ClInclude Include="EBehaviorTree.h" />
@@ -231,10 +234,12 @@
   <ItemGroup>
     <ClCompile Include="framework\Agent\BaseAgent.cpp">
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">../../stdafx.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">../../stdafx.h</PrecompiledHeaderFile>
     </ClCompile>
     <ClCompile Include="EBehaviorTree.cpp" />
     <ClCompile Include="framework\Agent\SteeringAgent.cpp">
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">../../stdafx.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">../../stdafx.h</PrecompiledHeaderFile>
     </ClCompile>
     <ClCompile Include="framework\EliteAI\EliteGraphs\EGraphConnectionTypes.cpp">
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">../../../stdafx.h</PrecompiledHeaderFile>

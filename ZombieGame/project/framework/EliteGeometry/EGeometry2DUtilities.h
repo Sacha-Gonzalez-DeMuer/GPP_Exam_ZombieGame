@@ -131,7 +131,32 @@ namespace Elite
 			pos.y >= rectPos.y && pos.y <= rectPos.y + rectDim.y;
 	}
 
+	// Generate a random point within a radius and outside a rectangle.
+	inline auto GetRandomPointOutsideRect(float radius, Vector2 rectPos, Vector2 rectSize)
+	{
+		// Generate a random angle in radians.
+		float angle{ Elite::randomFloat(0, static_cast<float>(M_PI)) };
 
+		// Generate a random distance within the radius.
+		float distance = { Elite::randomFloat(0, radius) };
+
+		// Calculate the x and y components of the point using the distance and angle.
+		float x = distance * std::cos(angle);
+		float y = distance * std::sin(angle);
+
+		// Offset the point by the position of the rectangle.
+		Vector2 point = { x + rectPos.x, y + rectPos.y };
+
+		// Check if the point is inside the rectangle.
+		if (IsPointInRect(point, rectPos, rectSize))
+		{
+			// If the point is inside the rectangle, move it to the nearest edge.
+			point.x = Elite::Clamp(point.x, rectPos.x, rectPos.x + rectSize.x - 1);
+			point.y = Elite::Clamp(point.y, rectPos.y, rectPos.y + rectSize.y - 1);
+		}
+
+		return point;
+	}
 
 	/*! Check if point is on a line */
 	inline auto IsPointOnLine(const Vector2& lineStart, const Vector2& lineEnd, const Vector2& point)
@@ -194,5 +219,7 @@ namespace Elite
 
 		return false;
 	}
+
+
 }
 #endif

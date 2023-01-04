@@ -173,8 +173,6 @@ namespace Elite
 		}
 	}
 
-
-
 	template<class T_GraphType>
 	inline void InfluenceMap<T_GraphType>::SetNodeColorsBasedOnInfluence()
 	{

@@ -10,13 +10,14 @@ public:
 	Inventory(IExamInterface* pInterface, UINT inventorySize = 5);
 
 	//Inventory management methods
+	bool GrabItem(const ItemInfo& item);
 	bool GrabItem(EntityInfo entity);
 	bool GrabItem(EntityInfo entity, ItemInfo& item);
 	bool DropItem(UINT slot);
 	bool DropItem();
 	void DeleteItem(UINT slot);
 	bool GetItem(UINT slot, ItemInfo& item);
-	void DropEmptyItems();
+	bool DropEmptyItem();
 
 	//Item usage methods
 	bool UseItem(); //uses current slot

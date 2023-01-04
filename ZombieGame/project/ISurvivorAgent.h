@@ -36,8 +36,9 @@ public:
 	void Render(float deltaTime, IExamInterface* pInterface);
 
 	std::shared_ptr<ISteeringBehavior> GetCurrentSteering() const { return m_pCurrentSteering; };
-
-
+	std::vector<EntityInfo*> GetEntitiesInFOV() const { return m_pEntitiesInFOV; };
+	std::vector<HouseInfo*> GetHousesInFOV() const { return m_pHousesInFOV; };
+	bool IsInFOV(const EntityInfo& e) const;
 protected:
 	std::vector<EntityInfo*> m_pEntitiesInFOV{};
 	std::vector<HouseInfo*> m_pHousesInFOV{};

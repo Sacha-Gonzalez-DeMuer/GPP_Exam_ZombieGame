@@ -3,7 +3,6 @@
 #include "IExamInterface.h"
 #include "framework/EliteAI/EliteGraphs/EliteGraphUtilities/EGraphRenderer.h"
 
-
 SurvivorAgentMemory::SurvivorAgentMemory(IExamInterface* pInterface)
 	: m_pInterface{ pInterface }
 	,m_PropagationRadius{ pInterface->Agent_GetInfo().FOV_Range * 3 }
@@ -34,6 +33,7 @@ SurvivorAgentMemory::~SurvivorAgentMemory()
 
 void SurvivorAgentMemory::Update(float deltaTime, IExamInterface* pInterface, std::vector<EntityInfo*> entitiesInFOV, std::vector<HouseInfo*> housesInFOV)
 {
+	UpdateAreaOfInterest();
 	UpdateHouses(pInterface, housesInFOV);
 	UpdateSeenCells(pInterface, entitiesInFOV);
 	UpdateInfluenceMap(deltaTime, pInterface);
@@ -49,6 +49,7 @@ void SurvivorAgentMemory::Update(float deltaTime, IExamInterface* pInterface, st
 	{
 		m_CooldownTimer += deltaTime;
 	}
+
 }
 
 void SurvivorAgentMemory::UpdateInfluenceMap(float deltaTime, IExamInterface* pInterface)
@@ -68,10 +69,13 @@ void SurvivorAgentMemory::DebugRender(IExamInterface* pInterface) const
 	}
 }
 
+std::unordered_set<int> SurvivorAgentMemory::GetHouseArea(const HouseInfo& house)
+{
+	return m_pInfluenceMap->GetNodeIndicesInRect(house.Center, house.Size);
+}
 
 bool SurvivorAgentMemory::OnPickUpItem(const ItemInfo& item)
 {
-
 	auto node{ m_pInfluenceMap->GetNodeAtWorldPos(item.Location) };
 	if (node->GetItem() != item.Type)
 		return false;
@@ -81,8 +85,29 @@ bool SurvivorAgentMemory::OnPickUpItem(const ItemInfo& item)
 	return true;
 }
 
+bool SurvivorAgentMemory::OnPickUpItem(const EntityInfo& entity)
+{
+	// Confirm entity is an item
+	if (entity.Type != eEntityType::ITEM)
+		return false;
+	ItemInfo item{};
+	if (!m_pInterface->Item_GetInfo(entity, item))
+		return false;
+
+	// If item type on node is not the one picked up, return false;
+	auto node{ m_pInfluenceMap->GetNodeAtWorldPos(entity.Location) };
+	if (node->GetItem() != item.Type)
+		return false;
+
+	// Remove from located items
+	node->RemoveItem();
+	m_LocatedItems.erase(node->GetIndex());
+	return true;
+}
+
 void SurvivorAgentMemory::AddToSeenHouses(HouseInfo houseInfo) 
 {
+	//Check if house already seen
 	const auto houseNode{ m_pInfluenceMap->GetNodeAtWorldPos(houseInfo.Center) };
 	for (auto i = 0; i != m_SeenHouses.size(); i++)
 	{
@@ -90,28 +115,34 @@ void SurvivorAgentMemory::AddToSeenHouses(HouseInfo houseInfo)
 			return;
 	}
 
+	//If not seen save it
 	m_SeenHouses.emplace_back(houseInfo);
+	//TODO: set influence
 }
 
 void SurvivorAgentMemory::AddToVisitedHouses(HouseInfo houseInfo)
 {
+	//Check if house visited seen
+	const auto houseNode{ m_pInfluenceMap->GetNodeAtWorldPos(houseInfo.Center) };
 	for (auto i = 0; i != m_ClearedHouses.size(); i++)
 	{
-		if (m_ClearedHouses[i].Center == houseInfo.Center)
+		if (m_pInfluenceMap->GetNodeAtWorldPos(m_ClearedHouses[i].Center)->GetIndex() == houseNode->GetIndex())
 			return;
 	}
 
+	//If not seen save it and save it
 	m_ClearedHouses.emplace_back(houseInfo);
 }
 
-bool SurvivorAgentMemory::IsHouseVisited(const HouseInfo& houseInfo)
+bool SurvivorAgentMemory::IsHouseCleared(const HouseInfo& houseInfo)
 {
 	if (m_ClearedHouses.empty())
 		return false;
 
+	const auto houseNode{ m_pInfluenceMap->GetNodeAtWorldPos(houseInfo.Center) };
 	for (const auto& house : m_ClearedHouses)
 	{
-		if (houseInfo.Center.DistanceSquared(house.Center) < m_pInfluenceMap->GetCellSize())
+		if (houseNode == m_pInfluenceMap->GetNodeAtWorldPos(house.Center))
 		{
 			return true;
 		}
@@ -128,13 +159,9 @@ void SurvivorAgentMemory::UpdateHouses(IExamInterface* pInterface, const std::ve
 
 	for (const auto& house : housesInFOV)
 	{
-		Elite::Vector2 houseSize{ house->Size.x - m_pInfluenceMap->GetCellSize(), house->Size.y - m_pInfluenceMap->GetCellSize() };
-		auto nodesInHouse{ m_pInfluenceMap->GetNodeIndicesInRect(house->Center, houseSize) };
-		std::cout << "nr nodes " << nodesInHouse.size() << "\n";
-
 		bool houseCleared{ true };
 		int count{ 0 };
-		for (const auto& nodeIdx : nodesInHouse)
+		for (const auto& nodeIdx : GetHouseArea(*house))
 		{
 			++count;
 			if (!m_pInfluenceMap->GetNode(nodeIdx)->GetScanned())
@@ -146,13 +173,14 @@ void SurvivorAgentMemory::UpdateHouses(IExamInterface* pInterface, const std::ve
 
 		if (houseCleared)
 		{
-			std::cout << "house is cleared; " << count << " nodes scanned\n";
 			AddToVisitedHouses(*house);
 		}
-
-		//if(GetNodeIdxAtPos(agentPos) == GetNodeIdxAtPos(house->Center))
-		//	AddToVisitedHouses(*house);
 	}
+}
+
+void SurvivorAgentMemory::UpdateAreaOfInterest()
+{
+
 }
 
 void SurvivorAgentMemory::LocateItem(const ItemInfo& item)
@@ -161,7 +189,6 @@ void SurvivorAgentMemory::LocateItem(const ItemInfo& item)
 
 	node->SetItem(item);
 	m_LocatedItems.insert(node->GetIndex());
-	//m_pInfluenceMap->SetInfluenceAtPosition(item.Location, 20); //TODO: maybe not needed anymore
 }
 
 
@@ -187,6 +214,15 @@ void SurvivorAgentMemory::UpdateSeenCells(IExamInterface* pInterface, std::vecto
 				return;
 
 			LocateItem(info);
+		}
+
+		if (e->Type == eEntityType::PURGEZONE)
+		{
+			PurgeZoneInfo purgeZone{};
+			if (pInterface->PurgeZone_GetInfo(*e, purgeZone))
+			{
+				m_pInfluenceMap->SetInfluenceAtPosition(purgeZone.Center, -purgeZone.Radius);
+			}
 		}
 	}
 

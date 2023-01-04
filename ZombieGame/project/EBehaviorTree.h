@@ -119,11 +119,56 @@ namespace Elite
 	{
 	public:
 		explicit BehaviorConditional(std::function<bool(Blackboard*)> fp) : m_fpConditional(fp) {}
+		explicit BehaviorConditional(std::function<bool(Blackboard*)> fp, float invert) 
+			: m_fpConditional(fp), m_InvertCondition(invert) {}
 		virtual BehaviorState Execute(Blackboard* pBlackBoard) override;
 
-	private:
+	protected:
 		std::function<bool(Blackboard*)> m_fpConditional = nullptr;
+		bool m_InvertCondition{ false };
 	};
+
+	class BehaviorAndConditional : public BehaviorConditional
+	{
+	public:
+		explicit BehaviorAndConditional(std::function<bool(Blackboard*)> fp, std::function<bool(Blackboard*)> fp2)
+			: BehaviorConditional(fp), m_fpConditional2(fp2) {}
+		explicit BehaviorAndConditional(std::function<bool(Blackboard*)> fp, std::function<bool(Blackboard*)> fp2, bool invert1, bool invert2)
+			: BehaviorConditional(fp, invert1), m_fpConditional2(fp2), m_InvertCondition2(invert2) {}
+		virtual BehaviorState Execute(Blackboard* pBlackBoard) override
+		{
+			// Execute the child behavior
+			BehaviorState childState = BehaviorConditional::Execute(pBlackBoard);
+
+			// If the child behavior failed, return failure
+			if (childState == BehaviorState::Failure)
+			{
+				m_CurrentState = BehaviorState::Failure;
+				return m_CurrentState;
+			}
+
+			// If the child behavior is still running, return running
+			if (childState == BehaviorState::Running)
+			{
+				m_CurrentState = BehaviorState::Running;
+				return m_CurrentState;
+			}
+
+			// Otherwise, execute the second conditional function and return its output
+			bool result = m_fpConditional2(pBlackBoard);
+			if (m_InvertCondition2)
+			{
+				result = !result;
+			}
+			m_CurrentState = (result) ? BehaviorState::Success : BehaviorState::Failure;
+			return m_CurrentState;
+		}
+
+	private:
+		std::function<bool(Blackboard*)> m_fpConditional2 = nullptr;
+		bool m_InvertCondition2{ false };
+	};
+
 
 
 	template<typename T>
@@ -169,25 +214,7 @@ namespace Elite
 		std::function<BehaviorState(Blackboard*)> m_fpAction = nullptr;
 	};
 
-	//template<typename T>
-	//class TBehaviorAction : public IBehavior
-	//{
-	//public:
-	//	explicit TBehaviorAction(std::function<BehaviorState(Blackboard*, T)> fp, std::function<T(Blackboard*)> objFunction)
-	//		: m_fpAction(fp), m_ObjFunc(objFunction) {}
-	//	virtual BehaviorState Execute(Blackboard* pBlackboard) override
-	//	{
-	//		if (m_fpAction == nullptr)
-	//			return BehaviorState::Failure;
 
-	//		m_CurrentState = m_fpAction(pBlackboard, m_ObjFunc(pBlackboard)); // Call m_ObjFunc to get the value of T
-	//		return m_CurrentState;
-	//	}
-
-	//private:
-	//	std::function<BehaviorState(Blackboard*, T)> m_fpAction = nullptr;
-	//	std::function<T(Blackboard*)> m_ObjFunc;
-	//};
 
 	template <typename T1, typename T2 = nullptr_t>
 	class TBehaviorAction : public IBehavior {
@@ -285,16 +312,23 @@ namespace Elite
 	class BehaviorWhile : public IBehavior
 	{
 	public:
-		BehaviorWhile(IBehavior* conditional, IBehavior* action) : m_pAction(action), m_pConditional(conditional) {}
+		explicit BehaviorWhile(IBehavior* conditional, IBehavior* action)
+			: m_pAction(action), m_pConditional(conditional), m_Invert(false) {}
+		explicit BehaviorWhile(IBehavior* conditional, IBehavior* action, bool invert)
+			: m_pAction(action), m_pConditional(conditional), m_Invert(invert) {}
+
 		virtual BehaviorState Execute(Blackboard* pBlackBoard) override
 		{
-			if (m_pConditional->Execute(pBlackBoard) == BehaviorState::Success)
+			BehaviorState condResult = m_pConditional->Execute(pBlackBoard);
+
+			if ((condResult == BehaviorState::Success && !m_Invert) ||
+				(condResult == BehaviorState::Failure && m_Invert))
 			{
 				if (m_pAction->Execute(pBlackBoard) == BehaviorState::Failure)
 				{
 					return BehaviorState::Failure;
 				}
-				
+
 				return BehaviorState::Running;
 			}
 			else
@@ -306,6 +340,7 @@ namespace Elite
 	private:
 		IBehavior* m_pAction = nullptr;
 		IBehavior* m_pConditional = nullptr;
+		bool m_Invert{ false };
 	};
 
 	//-----------------------------------------------------------------

@@ -25,15 +25,17 @@ public:
 
 	Elite::InfluenceMap<InfluenceGrid>* GetInfluenceMap() const { return m_pInfluenceMap; };
 	std::unordered_set<int> GetLocatedItems() const { return m_LocatedItems; };
-	std::vector<HouseInfo> GetSeenHouses() const { return m_SeenHouses; };
-	std::vector<HouseInfo> GetClearedHouses() const { return m_ClearedHouses; };
-
+	std::vector<EHouseInfo> GetSeenHouses() const { return m_SeenHouses; };
+	std::vector<EHouseInfo> GetClearedHouses() const { return m_ClearedHouses; };
+	std::unordered_set<int> GetHouseArea(const HouseInfo& house);
 	bool OnPickUpItem(const ItemInfo& item);
+	bool OnPickUpItem(const EntityInfo& entity);
 	 
 	void AddToSeenHouses( HouseInfo houseInfo);
 	void AddToVisitedHouses( HouseInfo houseInfo);
-	bool IsHouseVisited(const HouseInfo& houseInfo);
+	bool IsHouseCleared(const HouseInfo& houseInfo);
 	void UpdateHouses(IExamInterface* pInterface, const std::vector<HouseInfo*>& housesInFOV);
+	void UpdateAreaOfInterest();
 
 private:
 	IExamInterface* m_pInterface;
@@ -48,8 +50,9 @@ private:
 
 	std::unordered_set<int> m_LocatedItems{};
 
-	std::vector<HouseInfo> m_SeenHouses{};
-	std::vector<HouseInfo> m_ClearedHouses{};
+	std::vector<EHouseInfo> m_SeenHouses{};
+	std::vector<EHouseInfo> m_ClearedHouses{};
+
 
 	void LocateItem(const ItemInfo& item);
 	void UpdateInfluenceMap(float deltaTime, IExamInterface* pInterface);

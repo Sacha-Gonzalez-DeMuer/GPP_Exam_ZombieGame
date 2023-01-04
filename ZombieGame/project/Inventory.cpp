@@ -227,17 +227,16 @@ bool Inventory::GetItem(UINT slot, ItemInfo& item)
 	return true;
 }
 
-void Inventory::DropEmptyItems()
+bool Inventory::DropEmptyItem()
 {
 	ItemInfo item{};
 	for (UINT i = 0; i < m_InventorySize; ++i)
 	{
-		if (GetItem(i, item))
-		{
-			if (IsItemEmpty(item))
-				DropItem(i);
-		}
+		if (GetItem(i, item) && IsItemEmpty(item) && DropItem(i))
+			return true;
 	}
+
+	return false;
 }
 
 

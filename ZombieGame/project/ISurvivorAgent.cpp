@@ -1,14 +1,16 @@
+#pragma once
 #include "stdafx.h"
 #include "ISurvivorAgent.h"
-#include "framework/EliteData/EBlackboard.h"
 #include "Behaviors.h"
 #include "IExamInterface.h"
 #include "Inventory.h"
 #include "framework/SteeringBehaviors/Steering/CombinedSteeringBehaviors.h"
+#include "framework/EliteData/EBlackboard.h"
 #include <memory>
+
 using namespace Elite;
-using namespace BT_Conditions;
 using namespace BT_Actions;
+using namespace BT_Conditions;
 
 ISurvivorAgent::ISurvivorAgent(IExamInterface* pInterface)
 	: m_pInventory{new Inventory(pInterface, pInterface->Inventory_GetCapacity())}
@@ -46,6 +48,18 @@ void ISurvivorAgent::Update(float deltaTime, IExamInterface* pInterface, Steerin
 void ISurvivorAgent::Render(float deltaTime, IExamInterface* pInterface)
 {
 	m_pMemory->DebugRender(pInterface);
+}
+
+bool ISurvivorAgent::IsInFOV(const EntityInfo& e) const
+{
+	for (auto entity : m_pEntitiesInFOV)
+	{
+		if (entity->Location == e.Location)
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 HouseInfo* ISurvivorAgent::GetNearestHouse(const Elite::Vector2& fromPos) const
@@ -116,12 +130,13 @@ void ISurvivorAgent::InitializeBehaviorTree(IExamInterface* pInterface)
 			new BehaviorSequence
 			({
 				new BehaviorConditional(IsDangerNear),
-
+				new BehaviorWhile(new BehaviorConditional(IsEnemyInFOV), new BehaviorAction(ChangeToNavigateInfluenceMap), true),
+				//new BehaviorConditional(IsDangerNear),
+				//new BehaviorAction(ChangeToNavigateInfluenceMap),
 				new BehaviorSelector
 					({
-						new BehaviorSequence
+						new BehaviorSequence //Sees enemy
 						({
-							new BehaviorConditional(IsEnemyInFOV),
 							new BehaviorAction(SetClosestEnemyAsTarget),
 
 							new BehaviorSelector //Fight/Flight Selector
@@ -129,20 +144,37 @@ void ISurvivorAgent::InitializeBehaviorTree(IExamInterface* pInterface)
 								new BehaviorSequence
 								({
 									new BehaviorAction(EquipWeapon),
-									new BehaviorWhile(new NotDecorator(AlignedWithTarget), new BehaviorAction(ChangeToLookAt)),
-									new BehaviorAction(UseItem)
+									new TBehaviorAction<Elite::Vector2>(ShootTarget, GetClosestEnemyInFOV)
 								}),
 
-								new BehaviorWhile(new BehaviorConditional(IsEnemyInFOV), new BehaviorAction(ChangeToFleeLookingAt))
+								new BehaviorWhile(new NotDecorator(HasWeapon), new BehaviorAction(ChangeToFleeLookingAt))
 							})
 						}),
-
-						new BehaviorAction(ChangeToLookAround),
 					}),
 			}),
 
 
-			new BehaviorSelector //Survival Selector
+			//============= INVENTORY MANAGEMENT SELECTOR =============//
+			new BehaviorSelector
+			({
+				new BehaviorSequence
+				({
+					new BehaviorConditional(HasEmptyItem),
+					new BehaviorAction(DropEmptyItems)
+				}),
+
+				new BehaviorSequence
+				({
+					new BehaviorConditional(HasGarbage),
+					new BehaviorAction(DropGarbage)
+				})
+			}),
+
+
+
+
+			//============= SURVIVOR SELECTOR =============//
+			new BehaviorSelector
 			({
 				new BehaviorSequence //Health sequence
 				({
@@ -168,7 +200,7 @@ void ISurvivorAgent::InitializeBehaviorTree(IExamInterface* pInterface)
 					new BehaviorSelector //try finding needed item
 					({
 						new TBehaviorAction<Elite::Vector2, eItemType>(GoTo, GetClosestKnownItemTypePos, GetNeededItemType),
-						new TBehaviorAction<Elite::Vector2>(GoTo, GetClosestUnvisitedHousePos),
+						new TBehaviorAction<std::unordered_set<int>>(ChangeToExploreArea, GetClosestUnvisitedHouseArea)		
 					}),
 
 
@@ -180,7 +212,7 @@ void ISurvivorAgent::InitializeBehaviorTree(IExamInterface* pInterface)
 							new BehaviorAction(DropLeastValuableItem)
 						}),
 
-						new BehaviorAction(GrabItem)
+						new TBehaviorAction<Elite::Vector2, eItemType>(GrabItem, GetClosestKnownItemTypePos, GetNeededItemType)
 					}),
 
 				}),
@@ -189,8 +221,7 @@ void ISurvivorAgent::InitializeBehaviorTree(IExamInterface* pInterface)
 				({
 					new NotDecorator(IsInventoryFull),
 					new BehaviorConditional(HasSeenItem),
-					new TBehaviorAction<Elite::Vector2>(GoTo, GetClosestKnownItemPos),
-					new BehaviorAction(GrabItem),
+					new TBehaviorAction<Elite::Vector2>(GrabItem, GetClosestKnownItemPos),
 
 					//new BehaviorSequence //Reward Near
 					//	({
@@ -212,40 +243,38 @@ void ISurvivorAgent::InitializeBehaviorTree(IExamInterface* pInterface)
 
 				}),
 			}), 
-			
-
-			//============= INVENTORY MANAGEMENT SELECTOR =============//
-			new BehaviorSelector
-			({
-				new BehaviorSequence
-				({	
-					new BehaviorConditional(HasGarbage),
-					new BehaviorAction(DropGarbage)
-				}),
-
-				new BehaviorSequence
-				({
-					new BehaviorConditional(HasEmptyItem),
-					new BehaviorAction(DropEmptyItems)
-				})
-			}),
-
 
 
 			//============= EXPLORATION SELECTOR =============//
 			new BehaviorSelector
 			({
-				new BehaviorSequence //Scan Area
+				new BehaviorSequence //Local exploration
 				({
 					new NotDecorator(AreaScanned),
 					new BehaviorAction(ChangeToLookAround)
 				}),
 
-				new BehaviorSequence //Visit unvisited houses
+				new BehaviorSelector //House exploration
 				({
-					new BehaviorConditional(HasSeenHouse),
-					new NotDecorator(HasVisitedAllSeenHouses),
-					new TBehaviorAction<Elite::Vector2>(GoTo, GetClosestUnvisitedHousePos)
+					new BehaviorSequence
+					({
+						new BehaviorConditional(IsInHouse),
+						new TBehaviorConditional<HouseInfo*>(IsHouseCleared, GetClosestHouseInFOV),
+						new BehaviorAction(ExitHouse)
+					}),
+
+					new BehaviorSequence //Visit unvisited houses
+					({
+						new BehaviorConditional(HasSeenHouse),
+						new NotDecorator(HasVisitedAllSeenHouses),
+						new TBehaviorAction<std::unordered_set<int>>(ChangeToExploreArea, GetClosestUnvisitedHouseArea)
+					}),
+				}),
+
+				new BehaviorSequence //World exploration
+				({
+					new BehaviorConditional(IsRewardNear),
+					new BehaviorAction(ChangeToNavigateInfluenceMap)
 				}),
 
 				new BehaviorAction(ChangeToExplore)
@@ -263,11 +292,9 @@ Elite::Blackboard* ISurvivorAgent::CreateBlackboard(IExamInterface* pInterface)
 	Blackboard* pBlackboard = new Blackboard();
 
 	pBlackboard->AddData("Survivor", this);
-	pBlackboard->AddData("EntitiesInFOV", &m_pEntitiesInFOV);
 	pBlackboard->AddData("Interface", pInterface);
 	pBlackboard->AddData("SurvivorSteering", &m_pCurrentSteering);
 	pBlackboard->AddData("Inventory", m_pInventory);
-	pBlackboard->AddData("HousesInFOV", &m_pHousesInFOV);
 	pBlackboard->AddData("InfluenceMap", m_pMemory->GetInfluenceMap());
 	pBlackboard->AddData("Memory", m_pMemory);
 

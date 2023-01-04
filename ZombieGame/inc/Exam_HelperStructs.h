@@ -37,7 +37,7 @@ struct GameDebugParams //Debuggin Purposes only (Ignored during release build)
 	bool RenderUI = false; //Render Player UI (Parameters)
 	bool AutoGrabClosestItem = false; //Auto Grab closest item (Item_Grab)
 	std::string LevelFile = "GameLevel.gppl"; //Level to load?
-	int Seed = 2222; //Seed for random generator
+	int Seed = -1; //Seed for random generator
 	int StartingDifficultyStage = 0; // Overwrites the difficulty stage
 	bool InfiniteStamina = false; // Agent has infinite stamina
 	bool SpawnDebugPistol = false; // Spawns pistol with 1000 ammo at start

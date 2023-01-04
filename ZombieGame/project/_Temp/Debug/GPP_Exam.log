@@ -1,5 +1,14 @@
-﻿  SteeringAgent.cpp
-  ISurvivorAgent.cpp
-  Plugin.cpp
+﻿  BaseAgent.cpp
+  SteeringAgent.cpp
   Generating Code...
+  ISurvivorAgent.cpp
+  Inventory.cpp
+  Plugin.cpp
+  SurvivorAgentMemory.cpp
+  Generating Code...
+  EGraphNodeTypes.cpp
+  CombinedSteeringBehaviors.cpp
+  SteeringBehaviors.cpp
+  Generating Code...
+  EGraphRenderer.cpp
   GPP_Exam.vcxproj -> C:\Users\sacha\OneDrive\Documents\College\Howest\Gameplay-Programming\GPP_Exam\ZombieGame\_DEMO_DEBUG\GPP_Plugin_d.dll

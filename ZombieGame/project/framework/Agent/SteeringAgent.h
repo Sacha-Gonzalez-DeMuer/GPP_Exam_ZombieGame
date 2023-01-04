@@ -11,6 +11,7 @@
 // Includes & Forward Declarations
 //-----------------------------------------------------------------
 #include "BaseAgent.h"
+#include <unordered_set>
 class ISteeringBehavior;
 class SurvivorAgentMemory;
 
@@ -33,6 +34,7 @@ public:
 	float GetMaxAngularSpeed() const { return GetInfo().MaxAngularSpeed; }
 
 	Elite::Vector2 GetDirection() const { return GetInfo().GetForward(); }
+	Elite::Vector2 GetLocation() const { return GetInfo().Location; }
 
 	virtual void SetSteeringBehavior(std::shared_ptr<ISteeringBehavior>pBehavior) { m_pCurrentSteering = pBehavior; }
 	std::shared_ptr<ISteeringBehavior> GetSteeringBehavior() const { return m_pCurrentSteering; }
@@ -52,6 +54,13 @@ public:
 	void SetToExplore();
 	bool SetToFleeLookingAround();
 	void SetToFleeLookingAround(const Elite::Vector2& target);
+	void SetRunMode(bool enabled);
+	void SetToNavigateInfluenceMap();
+
+	void SetToExploreArea();
+	bool IsAreaExplored() const;
+	void SetToExploreArea(std::unordered_set<int> area);
+	void AddToExploreArea(std::unordered_set<int> toAdd);
 
 	std::shared_ptr<Elite::Vector2> GetTarget() const { return m_Target; };
 
@@ -71,6 +80,7 @@ protected:
 	std::shared_ptr<ISteeringBehavior> m_pFleeLookingAround;
 	std::shared_ptr<ISteeringBehavior> m_pExplore;
 	std::shared_ptr<ISteeringBehavior> m_pExploreArea;
+	std::shared_ptr<ISteeringBehavior> m_pNavigateInfluence;
 
 	std::shared_ptr<Elite::Vector2> m_Target{};
 

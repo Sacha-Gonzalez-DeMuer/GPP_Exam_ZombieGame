@@ -106,8 +106,10 @@ namespace Elite
 		float GetInfluence() const { return m_Influence; };
 		void SetInfluence(float influence) { m_Influence = influence; };
 
+		void SetBaseInfluence(float influence) { m_BaseInfluence = influence; };
 	private:
 		float m_Influence;
+		float m_BaseInfluence;
 	};
 
 	class WorldNode final : public Elite::InfluenceNode

@@ -330,20 +330,15 @@ namespace Elite
 			// Add the index of the current node to the cache
 			idxCache.insert(node->GetIndex());
 		}
-		else
-		{
-			// If the current node is not within the square, return without processing its connections
+		else // If the current node is not within the square, return without processing its connections
 			return;
-		}
 
 		// Recursively process the child nodes
 		for (const auto& connection : GetConnections(node->GetIndex()))
 		{
 			// Check if the child node has already been processed
 			if (idxCache.count(connection->GetTo()) > 0)
-			{
 				continue;
-			}
 
 			auto childNode{ GetNode(connection->GetTo()) };
 			GetNodesInSquareRecursive(childNode, idxCache, position, size);

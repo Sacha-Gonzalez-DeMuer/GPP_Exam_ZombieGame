@@ -10,6 +10,7 @@
 #include "EGraphNodeTypes.h"
 #include "EGraphConnectionTypes.h"
 #include <memory>
+#include <unordered_set>
 
 namespace Elite
 {
@@ -30,6 +31,7 @@ namespace Elite
 		// Basic graph functionality
 		// -------------------------
 		T_NodeType* GetNode(int idx) const;
+		std::vector<T_NodeType*> GetNodes(std::unordered_set<int> indices) const;
 		bool IsNodeValid(int idx) const;
 		NodeVector GetAllNodes() const;
 
@@ -147,6 +149,21 @@ namespace Elite
 
 		return m_Nodes[idx];
 	}
+
+	template<class T_NodeType, class T_ConnectionType>
+	inline std::vector<T_NodeType*> IGraph<T_NodeType, T_ConnectionType>::GetNodes(std::unordered_set<int> indices) const
+	{
+		//assert( indices.empty() ) && "<Graph::GetNode>: invalid index");
+		
+		std::vector<T_NodeType*> nodes{};
+		for (const int idx : indices)
+		{
+			nodes.push_back(m_Nodes[idx]);
+		}
+
+		return nodes;
+	}
+
 
 	template<class T_NodeType, class T_ConnectionType>
 	inline bool IGraph<T_NodeType, T_ConnectionType>::IsNodeValid(int idx) const

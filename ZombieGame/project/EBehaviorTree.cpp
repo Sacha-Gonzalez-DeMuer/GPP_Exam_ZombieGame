@@ -93,7 +93,7 @@ BehaviorState BehaviorConditional::Execute(Blackboard* pBlackBoard)
 	if (m_fpConditional == nullptr)
 		return BehaviorState::Failure;
 
-	switch (m_fpConditional(pBlackBoard))
+	switch (m_InvertCondition ? !m_fpConditional(pBlackBoard) : m_fpConditional(pBlackBoard))
 	{
 	case true:
 		m_CurrentState = BehaviorState::Success;
@@ -102,7 +102,6 @@ BehaviorState BehaviorConditional::Execute(Blackboard* pBlackBoard)
 		m_CurrentState = m_CurrentState = BehaviorState::Failure;
 		return m_CurrentState;
 	}
-
 
 	return BehaviorState::Failure;
 }

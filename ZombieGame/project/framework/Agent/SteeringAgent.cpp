@@ -41,6 +41,13 @@ void SteeringAgent::Initialize(std::shared_ptr<SurvivorAgentMemory> pMemory)
 
 	m_pExplore = std::make_shared<Explore>();
 	std::dynamic_pointer_cast<Explore>(m_pExplore)->Initialize(pMemory);
+
+	m_pExploreArea = std::make_shared<ExploreArea>();
+	std::dynamic_pointer_cast<ExploreArea>(m_pExploreArea)->Initialize(pMemory);
+
+	m_pNavigateInfluence = std::make_shared<NavigateInfluence>();
+	std::dynamic_pointer_cast<NavigateInfluence>(m_pNavigateInfluence)->Initialize(pMemory);
+
 }
 
 
@@ -118,4 +125,36 @@ void SteeringAgent::SetToFleeLookingAround(const Elite::Vector2& target)
 {
 	m_pFlee->SetTarget(target);
 	m_pCurrentSteering = m_pFleeLookingAround;
+}
+
+void SteeringAgent::SetRunMode(bool enabled)
+{
+	m_pCurrentSteering->SetRunMode(enabled);
+}
+
+void SteeringAgent::SetToNavigateInfluenceMap()
+{
+	m_pCurrentSteering = m_pNavigateInfluence;
+}
+
+
+void SteeringAgent::SetToExploreArea()
+{
+	m_pCurrentSteering = m_pExploreArea;
+}
+
+bool SteeringAgent::IsAreaExplored() const
+{
+	return std::dynamic_pointer_cast<ExploreArea>(m_pExploreArea)->IsExplored();
+}
+
+void SteeringAgent::SetToExploreArea(std::unordered_set<int> area)
+{
+	m_pCurrentSteering = m_pExploreArea;
+	std::dynamic_pointer_cast<ExploreArea>(m_pExploreArea)->SetArea(area);
+}
+
+void SteeringAgent::AddToExploreArea(std::unordered_set<int> toAdd)
+{
+	std::dynamic_pointer_cast<ExploreArea>(m_pExploreArea)->AddToArea(toAdd);
 }

@@ -64,6 +64,9 @@
     <ClInclude Include="EBehaviorTree.h" />
     <ClInclude Include="framework\Agent\SteeringAgent.h" />
     <ClInclude Include="framework\Agent\BaseAgent.h" />
+    <ClInclude Include="BT_Actions.h" />
+    <ClInclude Include="BT_BlackboardGetters.h" />
+    <ClInclude Include="BT_Conditions.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="framework">
