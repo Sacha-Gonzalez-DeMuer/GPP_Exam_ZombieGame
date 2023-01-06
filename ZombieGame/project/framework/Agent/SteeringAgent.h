@@ -58,9 +58,9 @@ public:
 	void SetToNavigateInfluenceMap();
 
 	void SetToExploreArea();
-	bool IsAreaExplored() const;
 	void SetToExploreArea(std::unordered_set<int> area);
 	void AddToExploreArea(std::unordered_set<int> toAdd);
+	bool IsAreaExplored();
 
 	std::shared_ptr<Elite::Vector2> GetTarget() const { return m_Target; };
 

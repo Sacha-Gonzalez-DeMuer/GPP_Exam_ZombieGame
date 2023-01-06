@@ -33,22 +33,11 @@ SurvivorAgentMemory::~SurvivorAgentMemory()
 
 void SurvivorAgentMemory::Update(float deltaTime, IExamInterface* pInterface, std::vector<EntityInfo*> entitiesInFOV, std::vector<HouseInfo*> housesInFOV)
 {
-	UpdateAreaOfInterest();
 	UpdateHouses(pInterface, housesInFOV);
 	UpdateSeenCells(pInterface, entitiesInFOV);
 	UpdateInfluenceMap(deltaTime, pInterface);
 
-	if (m_CooldownTimer > m_CooldownTime)
-	{
-		for (const auto& house : housesInFOV)
-		{
-			AddToSeenHouses(*house);
-		}
-	}
-	else
-	{
-		m_CooldownTimer += deltaTime;
-	}
+	
 
 }
 
@@ -61,12 +50,6 @@ void SurvivorAgentMemory::UpdateInfluenceMap(float deltaTime, IExamInterface* pI
 void SurvivorAgentMemory::DebugRender(IExamInterface* pInterface) const
 {
 	RenderInfluenceMap(pInterface);
-
-	//Render circle around seen items
-	for (const auto& item : m_LocatedItems)
-	{
-		pInterface->Draw_Circle(m_pInfluenceMap->GetNode(item)->GetPosition(), 3, {1,.5f,.5f});
-	}
 }
 
 std::unordered_set<int> SurvivorAgentMemory::GetHouseArea(const HouseInfo& house)
@@ -107,81 +90,115 @@ bool SurvivorAgentMemory::OnPickUpItem(const EntityInfo& entity)
 
 void SurvivorAgentMemory::AddToSeenHouses(HouseInfo houseInfo) 
 {
-	//Check if house already seen
+	// Check if house already seen
 	const auto houseNode{ m_pInfluenceMap->GetNodeAtWorldPos(houseInfo.Center) };
-	for (auto i = 0; i != m_SeenHouses.size(); i++)
+	for (auto i = 0; i < m_SeenHouses.size(); i++)
 	{
 		if (m_pInfluenceMap->GetNodeAtWorldPos(m_SeenHouses[i].Center)->GetIndex() == houseNode->GetIndex())
 			return;
 	}
 
-	//If not seen save it
-	m_SeenHouses.emplace_back(houseInfo);
-	//TODO: set influence
-}
-
-void SurvivorAgentMemory::AddToVisitedHouses(HouseInfo houseInfo)
-{
-	//Check if house visited seen
-	const auto houseNode{ m_pInfluenceMap->GetNodeAtWorldPos(houseInfo.Center) };
-	for (auto i = 0; i != m_ClearedHouses.size(); i++)
+	for (auto i = 0; i < m_ClearedHouses.size(); i++)
 	{
 		if (m_pInfluenceMap->GetNodeAtWorldPos(m_ClearedHouses[i].Center)->GetIndex() == houseNode->GetIndex())
 			return;
 	}
 
-	//If not seen save it and save it
+
+	// If not seen save it
+	m_SeenHouses.emplace_back(houseInfo);
+}
+
+void SurvivorAgentMemory::AddToVisitedHouses(HouseInfo houseInfo)
+{
+	const auto houseNode{ m_pInfluenceMap->GetNodeAtWorldPos(houseInfo.Center) };
+
+	// Remove house from seen houses
+	for (auto it = m_SeenHouses.begin(); it != m_SeenHouses.end();)
+	{
+		if (m_pInfluenceMap->GetNodeAtWorldPos(it->Center)->GetIndex() == houseNode->GetIndex()) {
+			it = m_SeenHouses.erase(it);
+		}
+		else
+		{
+			++it;
+		}
+	}
+	
+	// Check if house visited seen
+	for (auto i = 0; i < m_ClearedHouses.size(); i++)
+	{
+		if (m_pInfluenceMap->GetNodeAtWorldPos(m_ClearedHouses[i].Center)->GetIndex() == houseNode->GetIndex())
+			return;
+	}
+
+	// If not seen save it and save it
 	m_ClearedHouses.emplace_back(houseInfo);
 }
 
 bool SurvivorAgentMemory::IsHouseCleared(const HouseInfo& houseInfo)
 {
-	if (m_ClearedHouses.empty())
-		return false;
+	const auto houseNodes{ m_pInfluenceMap->GetNodeIndicesInRect(houseInfo.Center, houseInfo.Size) };
+	
+	return IsAreaExplored(houseNodes);
+}
 
-	const auto houseNode{ m_pInfluenceMap->GetNodeAtWorldPos(houseInfo.Center) };
-	for (const auto& house : m_ClearedHouses)
-	{
-		if (houseNode == m_pInfluenceMap->GetNodeAtWorldPos(house.Center))
-		{
-			return true;
-		}
-	}
+bool SurvivorAgentMemory::IsHouseCleared(const HouseInfo& houseInfo, std::unordered_set<int>& area)
+{
+	area = m_pInfluenceMap->GetNodeIndicesInRect(houseInfo.Center, houseInfo.Size);
+	return IsAreaExplored(area);
+}
 
-	return false;
+bool SurvivorAgentMemory::IsHouseCleared(std::unordered_set<int>& unscannedArea, const HouseInfo& houseInfo)
+{
+	return IsAreaExplored(m_pInfluenceMap->GetNodeIndicesInRect(houseInfo.Center, houseInfo.Size), unscannedArea);
 }
 
 void SurvivorAgentMemory::UpdateHouses(IExamInterface* pInterface, const std::vector<HouseInfo*>& housesInFOV)
 {
-	auto agentPos{ pInterface->Agent_GetInfo().Location };
-	auto GetNodeIdxAtPos
-	{ [&](Elite::Vector2 pos)->int {return m_pInfluenceMap->GetNodeAtWorldPos(pos)->GetIndex(); } };
-
 	for (const auto& house : housesInFOV)
 	{
-		bool houseCleared{ true };
-		int count{ 0 };
-		for (const auto& nodeIdx : GetHouseArea(*house))
-		{
-			++count;
-			if (!m_pInfluenceMap->GetNode(nodeIdx)->GetScanned())
-			{
-				houseCleared = false;
-				break;
-			}
-		}
-
-		if (houseCleared)
-		{
-			AddToVisitedHouses(*house);
-		}
+		AddToSeenHouses(*house);
 	}
+
+	if (m_SeenHouses.empty())
+		return;
+
+	auto agentPos{ pInterface->Agent_GetInfo().Location };
+	auto GetNodeIdxAtPos
+	{ [&](Elite::Vector2 pos)->int { return m_pInfluenceMap->GetNodeAtWorldPos(pos)->GetIndex(); } };
+
+	
+	for (const auto& house : m_SeenHouses)
+	{
+		//if (house.Center.DistanceSquared(agentPos) > pInterface->Agent_GetInfo().FOV_Range * pInterface->Agent_GetInfo().FOV_Range)
+		//	continue;
+
+		if (IsHouseCleared(house))
+			AddToVisitedHouses(house);
+	}
+
+	//for (const auto& house : housesInFOV)
+	//{
+	//	bool houseCleared{ true };
+	//	int count{ 0 };
+	//	for (const auto& nodeIdx : GetHouseArea(*house))
+	//	{
+	//		++count;
+	//		if (!m_pInfluenceMap->GetNode(nodeIdx)->GetScanned())
+	//		{
+	//			houseCleared = false;
+	//			break;
+	//		}
+	//	}
+
+	//	if (houseCleared)
+	//	{
+	//		AddToVisitedHouses(*house);
+	//	}
+	//}
 }
 
-void SurvivorAgentMemory::UpdateAreaOfInterest()
-{
-
-}
 
 void SurvivorAgentMemory::LocateItem(const ItemInfo& item)
 {
@@ -243,21 +260,41 @@ bool SurvivorAgentMemory::HasVisitedHouse(const HouseInfo& house) const
 	Elite::Vector2 houseSize{ house.Size.x - m_pInfluenceMap->GetCellSize(), house.Size.y - m_pInfluenceMap->GetCellSize() };
 	auto nodesInHouse{ m_pInfluenceMap->GetNodeIndicesInRect(house.Center, houseSize) };
 
+	int nrCellsCleared{ 0 };
 	bool houseCleared{ true };
 	for (const auto& nodeIdx : nodesInHouse)
 	{
-		if (!m_pInfluenceMap->GetNode(nodeIdx)->GetScanned())
+		if (m_pInfluenceMap->GetNode(nodeIdx)->GetScanned())
+			++nrCellsCleared;
+	}
+
+	return static_cast<float>(nrCellsCleared) / static_cast<float>(nodesInHouse.size()) > m_PercentageToClear;
+}
+
+bool SurvivorAgentMemory::IsAreaExplored(std::unordered_set<int> area) const
+{
+	int nrCellsCleared{ 0 };
+	for (int i : area)
+	{
+		if (m_pInfluenceMap->GetNode(i)->GetScanned())
+			++nrCellsCleared;
+	}
+
+	return static_cast<float>(nrCellsCleared) / static_cast<float>(area.size()) > m_PercentageToClear;
+}
+
+bool SurvivorAgentMemory::IsAreaExplored(std::unordered_set<int> area, std::unordered_set<int>& unscannedArea) const
+{
+	int nrCellsCleared{ 0 };
+	for (int i : area)
+	{
+		if (m_pInfluenceMap->GetNode(i)->GetScanned())
 		{
-			return false;
+			++nrCellsCleared;
+			unscannedArea.insert(i);
 		}
 	}
 
-	return true;
-
-	//for (const auto& house : m_VisitedHouses)
-	//{
-	//	if (house.Center == location)
-	//		return true;
-	//}
-	//return false;
+	return static_cast<float>(nrCellsCleared) / static_cast<float>(area.size()) > m_PercentageToClear;
 }
+

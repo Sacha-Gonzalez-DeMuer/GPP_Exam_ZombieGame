@@ -171,11 +171,11 @@ namespace Elite
 
 
 
-	template<typename T>
+	template<typename T_MemoryObject>
 	class TBehaviorConditional : public IBehavior
 	{
 	public:
-		explicit TBehaviorConditional(std::function<bool(Blackboard*, T)> fp, std::function<T(Blackboard*)> objFunction) 
+		explicit TBehaviorConditional(std::function<bool(Blackboard*, T_MemoryObject)> fp, std::function<T_MemoryObject(Blackboard*)> objFunction) 
 			: m_fpConditionalTemplated(fp), m_ObjFunc(objFunction) {}
 		virtual BehaviorState Execute(Blackboard* pBlackBoard) override
 		{
@@ -197,8 +197,8 @@ namespace Elite
 		};
 
 	private:
-		std::function<bool(Blackboard*, T)> m_fpConditionalTemplated = nullptr;
-		std::function<T(Blackboard*)> m_ObjFunc;
+		std::function<bool(Blackboard*, T_MemoryObject)> m_fpConditionalTemplated = nullptr;
+		std::function<T_MemoryObject(Blackboard*)> m_ObjFunc;
 	};
 
 	//-----------------------------------------------------------------
@@ -214,6 +214,16 @@ namespace Elite
 		std::function<BehaviorState(Blackboard*)> m_fpAction = nullptr;
 	};
 
+	class BehaviorWait : public IBehavior
+	{
+	public:
+		explicit BehaviorWait(float duration) : m_WaitTime(duration) {}
+		virtual BehaviorState Execute(Blackboard* pBlackBoard) override;
+
+	private:
+		float m_WaitTime{ 0 };
+		float m_WaitTimer{ 0 };
+	};
 
 
 	template <typename T1, typename T2 = nullptr_t>
@@ -284,16 +294,16 @@ namespace Elite
 
 	//(std::function<bool(Blackboard*, T)> fp, std::function<T(Blackboard*)> objFunction) 
 	//: m_fpConditionalTemplated(fp), m_ObjFunc(objFunction) {}
-	template<typename T>
-	class TNotDecorator : public TBehaviorConditional<T>
+	template<typename T_MemoryObject>
+	class TNotDecorator : public TBehaviorConditional<T_MemoryObject>
 	{
 	public:
-		explicit TNotDecorator(std::function<bool(Blackboard*, T)> fp, std::function<T(Blackboard*)> objFunction)
-			: TBehaviorConditional<T>(fp, objFunction) {} // Update base class here
+		explicit TNotDecorator(std::function<bool(Blackboard*, T_MemoryObject)> fp, std::function<T_MemoryObject(Blackboard*)> objFunction)
+			: TBehaviorConditional<T_MemoryObject>(fp, objFunction) {} // Update base class here
 		virtual BehaviorState Execute(Blackboard* pBlackBoard) override
 		{
 			// Execute the child behavior
-			TBehaviorConditional<T>::Execute(pBlackBoard); // Update base class here
+			TBehaviorConditional<T_MemoryObject>::Execute(pBlackBoard); // Update base class here
 
 			// Invert the child's output and return it
 			if (GetCurrentState() == BehaviorState::Success)

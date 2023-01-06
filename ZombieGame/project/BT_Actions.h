@@ -48,33 +48,6 @@ namespace BT_Actions
 		return SUCCESS;
 	}
 
-
-	//Elite::BehaviorState GrabItem(Elite::Blackboard* pBlackboard)
-	//{
-	//	auto pSurvivor{ GetSurvivor(pBlackboard) };
-	//	if (!pSurvivor)
-	//		return FAILURE;
-
-	//	auto pInventory{ GetInventory(pBlackboard) };
-	//	if (!pInventory)
-	//		return FAILURE;
-
-	//	auto pMemory{ GetMemory(pBlackboard) };
-	//	if (!pMemory)
-	//		return FAILURE;
-
-	//	ItemInfo item{};
-	//	for (const auto& entity : pSurvivor->GetEntitiesInFOV())
-	//	{
-	//		if (entity->Type == eEntityType::ITEM && pInventory->GrabItem(*entity, item) && pMemory->OnPickUpItem(item))
-	//		{
-	//			return SUCCESS;
-	//		}
-	//	}
-
-	//	return FAILURE;
-	//}
-
 	Elite::BehaviorState GrabItem(Elite::Blackboard* pBlackboard, const Elite::Vector2& entityPos)
 	{
 		if (entityPos == INVALID_VECTOR2)
@@ -92,9 +65,9 @@ namespace BT_Actions
 		if (!pMemory)
 			return FAILURE;
 
-
+		float grabRange{ pSurvivor->GetInfo().GrabRange * .8f };
 		// Position correctly
-		if (entityPos.DistanceSquared(pSurvivor->GetLocation()) > pSurvivor->GetInfo().GrabRange * pSurvivor->GetInfo().GrabRange)
+		if (entityPos.DistanceSquared(pSurvivor->GetLocation()) > grabRange * grabRange)
 		{
 			pSurvivor->SetToSeek(entityPos);
 			return RUNNING;
@@ -103,9 +76,10 @@ namespace BT_Actions
 		// Orient correctly
 		EntityInfo e{};
 		e.Location = entityPos;
-		if (!pSurvivor->IsInFOV(e))
+		float angleBetween{ Elite::AngleBetween(pSurvivor->GetDirection(), (e.Location - pSurvivor->GetLocation()).GetNormalized()) };
+		if (Elite::ToDegrees(angleBetween) > 5.0f)
 		{
-			pSurvivor->SetToLookAt(entityPos);
+			pSurvivor->SetToLookAround();
 			return RUNNING;
 		}
 
@@ -335,21 +309,27 @@ namespace BT_Actions
 		auto pSurvivor{ GetSurvivor(pBlackboard) };
 		if (!pSurvivor)
 			return {};
+
 		auto seenHouses{ pMemory->GetSeenHouses() };
-		if (seenHouses.empty() || seenHouses.size() <= pMemory->GetClearedHouses().size())
+		if (seenHouses.empty())
 			return {};
 
 		//Determine unvisited closest house
-		auto closestHouse{ seenHouses[0] };
+		EHouseInfo* closestHouse{ nullptr };
+		std::unordered_set<int> area{ };
+
 		for (auto& house : seenHouses)
 		{
-			if (!pMemory->HasVisitedHouse(house)
-				&& house.Center.Distance(pSurvivor->GetLocation()) < closestHouse.Center.Distance(pSurvivor->GetLocation()))
-				closestHouse = house;
+			if (!closestHouse)
+				closestHouse = &house;
+
+			if (!pMemory->IsHouseCleared(house, area)
+				&& house.Center.DistanceSquared(pSurvivor->GetLocation()) < closestHouse->Center.DistanceSquared(pSurvivor->GetLocation()))
+			{
+				closestHouse = &house;
+			}
 		}
 
-		//Get its unvisited area
-		auto area{ pMemory->GetHouseArea(closestHouse) };
 		std::unordered_set<int> unclearedArea{};
 		for (int idx : area)
 		{
@@ -357,14 +337,13 @@ namespace BT_Actions
 				unclearedArea.insert(idx);
 		}
 
-		return unclearedArea;
+		return area;
 	}
 
 	eItemType GetNeededItemType(Elite::Blackboard* pBlackboard)
 	{
 		//Get necessary data
 		const auto& pSurvivor{ GetSurvivor(pBlackboard) };
-
 
 		//Determine needed item
 		if (pSurvivor->GetInfo().Energy < pSurvivor->GetInfo().LowEnergyThreshold)
@@ -531,17 +510,21 @@ namespace BT_Actions
 		if (!pInventory)
 			return FAILURE;
 
-		const float errorMargin{ 5.0f };
+		const float errorMargin{ 1.0f };
+		Elite::Vector2 toTarget{ (target - pSurvivor->GetLocation()) };
+		const float angleBetween{ Elite::AngleBetween(pSurvivor->GetDirection(), toTarget) };
+
 		pSurvivor->SetToLookAt(target);
-		if (Elite::ToDegrees(Elite::AngleBetween(pSurvivor->GetDirection(), target - pSurvivor->GetLocation())) > errorMargin)
-			return RUNNING;
-
-
-		if (pInventory->EquipItem(eItemType::SHOTGUN) || pInventory->EquipItem(eItemType::PISTOL))
+		if (abs(Elite::ToDegrees(angleBetween)) > errorMargin)
 		{
-			pInventory->UseItem();
-			return SUCCESS;
+			return RUNNING;
 		}
+
+		if (pInventory->EquipItem(eItemType::SHOTGUN) && pInventory->UseItem())
+			return SUCCESS;
+
+		if (pInventory->EquipItem(eItemType::PISTOL) && pInventory->UseItem())
+			return SUCCESS;
 
 		return FAILURE;
 	}
@@ -594,18 +577,27 @@ namespace BT_Actions
 
 	Elite::BehaviorState ChangeToExploreArea(Elite::Blackboard* pBlackboard, std::unordered_set<int> area)
 	{
+		if (area.empty())
+			return FAILURE;
+
 		auto pSurvivor{ GetSurvivor(pBlackboard) };
 		if (!pSurvivor)
 			return FAILURE;
-
-		if (area.size() <= 1)
+		auto pMemory{ GetMemory(pBlackboard) };
+		if (!pMemory)
 			return FAILURE;
 
-		pSurvivor->SetToExploreArea(area);
+		if(pSurvivor->IsAreaExplored())
+			pSurvivor->SetToExploreArea(area);
 
-		if (!pSurvivor->IsAreaExplored())
+		if (!pMemory->IsAreaExplored(area))
+		{
+			std::cout << "Exploring Area\n";
+			pSurvivor->SetToExploreArea();
 			return RUNNING;
+		}
 
+		std::cout << "area is explored\n";
 		return SUCCESS;
 	}
 
@@ -662,6 +654,45 @@ namespace BT_Actions
 
 
 		pSurvivor->SetToNavigateInfluenceMap();
+		return SUCCESS;
+	}
+
+	Elite::BehaviorState FleeToNearestHouse(Elite::Blackboard* pBlackboard)
+	{
+		auto pMemory{ GetMemory(pBlackboard) };
+		if (!pMemory)
+			return FAILURE;
+
+		auto pSurvivor{ GetSurvivor(pBlackboard) };
+		if (!pSurvivor)
+			return FAILURE;
+
+
+		Elite::Vector2 closestHousePos{ INVALID_VECTOR2 };
+		for (auto house : pMemory->GetSeenHouses())
+		{
+			if (house.Center.DistanceSquared(pSurvivor->GetLocation()) < closestHousePos.DistanceSquared(pSurvivor->GetLocation()))
+			{
+				closestHousePos = house.Center;
+			}
+		}
+
+		for (auto house : pMemory->GetClearedHouses())
+		{
+			if (house.Center.DistanceSquared(pSurvivor->GetLocation()) < closestHousePos.DistanceSquared(pSurvivor->GetLocation()))
+			{
+				closestHousePos = house.Center;
+			}
+		}
+
+		if (closestHousePos == INVALID_VECTOR2)
+			return FAILURE;
+
+		pSurvivor->SetToSeek(closestHousePos);
+		const float arriveRange{ pSurvivor->GetInfo().GrabRange / 2 };
+		if (pSurvivor->GetInfo().Location.DistanceSquared(closestHousePos) > arriveRange * arriveRange)
+			return RUNNING;
+
 		return SUCCESS;
 	}
 }

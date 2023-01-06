@@ -39,6 +39,7 @@ public:
 	std::vector<EntityInfo*> GetEntitiesInFOV() const { return m_pEntitiesInFOV; };
 	std::vector<HouseInfo*> GetHousesInFOV() const { return m_pHousesInFOV; };
 	bool IsInFOV(const EntityInfo& e) const;
+	
 protected:
 	std::vector<EntityInfo*> m_pEntitiesInFOV{};
 	std::vector<HouseInfo*> m_pHousesInFOV{};

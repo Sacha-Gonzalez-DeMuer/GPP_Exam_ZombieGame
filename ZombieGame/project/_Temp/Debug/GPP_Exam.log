@@ -1,11 +1,14 @@
-﻿  BaseAgent.cpp
-  SteeringAgent.cpp
-  Generating Code...
+﻿  SteeringAgent.cpp
+  EMatrix2x3.cpp
   ISurvivorAgent.cpp
-  Inventory.cpp
   Plugin.cpp
   SurvivorAgentMemory.cpp
+C:\Users\sacha\OneDrive\Documents\College\Howest\Gameplay-Programming\GPP_Exam\ZombieGame\project\SurvivorAgentMemory.cpp(95,21): warning C4018: '<': signed/unsigned mismatch
+C:\Users\sacha\OneDrive\Documents\College\Howest\Gameplay-Programming\GPP_Exam\ZombieGame\project\SurvivorAgentMemory.cpp(101,21): warning C4018: '<': signed/unsigned mismatch
+C:\Users\sacha\OneDrive\Documents\College\Howest\Gameplay-Programming\GPP_Exam\ZombieGame\project\SurvivorAgentMemory.cpp(129,21): warning C4018: '<': signed/unsigned mismatch
+  Time.cpp
   Generating Code...
+  EGraphConnectionTypes.cpp
   EGraphNodeTypes.cpp
   CombinedSteeringBehaviors.cpp
   SteeringBehaviors.cpp

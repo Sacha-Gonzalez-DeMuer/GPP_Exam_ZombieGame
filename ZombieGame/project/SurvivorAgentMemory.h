@@ -7,6 +7,12 @@
 
 class IExamInterface;
 
+struct intBool
+{
+	int i;
+	bool b;
+};
+
 class SurvivorAgentMemory final
 {
 	using InfluenceGrid = Elite::GridGraph<Elite::WorldNode, Elite::GraphConnection>;
@@ -34,8 +40,12 @@ public:
 	void AddToSeenHouses( HouseInfo houseInfo);
 	void AddToVisitedHouses( HouseInfo houseInfo);
 	bool IsHouseCleared(const HouseInfo& houseInfo);
+	bool IsHouseCleared(const HouseInfo& houseInfo, std::unordered_set<int>& area);
+	bool IsHouseCleared(std::unordered_set<int>& unscannedArea, const HouseInfo& houseInfo);
+
 	void UpdateHouses(IExamInterface* pInterface, const std::vector<HouseInfo*>& housesInFOV);
-	void UpdateAreaOfInterest();
+	bool IsAreaExplored(std::unordered_set<int> area) const;
+	bool IsAreaExplored(std::unordered_set<int> area, std::unordered_set<int>& unscannedArea) const;
 
 private:
 	IExamInterface* m_pInterface;
@@ -45,14 +55,15 @@ private:
 	Elite::GraphRenderer* m_pGraphRenderer{ nullptr };
 	float m_PropagationRadius;
 
-	float m_CooldownTime{ 1.f };
-	float m_CooldownTimer{ 0 };
-
 	std::unordered_set<int> m_LocatedItems{};
+
+	int m_NrSeenHouses{};
+
+	//std::unordered_map<intBool, EHouseInfo> m_LocatedHouses{};
 
 	std::vector<EHouseInfo> m_SeenHouses{};
 	std::vector<EHouseInfo> m_ClearedHouses{};
-
+	float m_PercentageToClear{ .5f };
 
 	void LocateItem(const ItemInfo& item);
 	void UpdateInfluenceMap(float deltaTime, IExamInterface* pInterface);

@@ -50,11 +50,8 @@ namespace Elite
 			{
 				pInterface->Draw_Point(pNode->GetPosition(), width, { 1,1,1 }, depth - .1f);
 				if (worldNode->HasItem())
-					pInterface->Draw_Point(pNode->GetPosition(), width, { 0,1,0 }, depth - .2f);
+					pInterface->Draw_Point(worldNode->GetItemPos(), width, {0,1,0}, depth - .2f);
 			}
-				
-
-
 
 			pInterface->Draw_SolidPolygon(&verts[0], 4, { pNode->GetColor().r, pNode->GetColor().g, pNode->GetColor().b }, depth);
 		};

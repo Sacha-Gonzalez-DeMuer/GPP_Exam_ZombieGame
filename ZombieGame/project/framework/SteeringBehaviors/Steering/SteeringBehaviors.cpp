@@ -93,6 +93,7 @@ SteeringPlugin_Output Wander::CalculateSteering(float deltaT, const IExamInterfa
 	steering.LinearVelocity.Normalize();
 	steering.LinearVelocity *= pInterface->Agent_GetInfo().MaxLinearSpeed;
 
+
 	return steering;
 }
 
@@ -168,36 +169,55 @@ SteeringPlugin_Output LookAt::CalculateSteering(float deltaT, const IExamInterfa
 
 SteeringPlugin_Output Explore::CalculateSteering(float deltaT, const IExamInterface* pInterface)
 {
-	std::cout << "Exploring\n";
 	SteeringPlugin_Output steering{};
 	const WorldInfo worldInfo{ pInterface->World_GetInfo() };
 	const AgentInfo& agentInfo{ pInterface->Agent_GetInfo() };
 
 
-	const auto& nodesInRadius{ m_pInfluenceMap->GetNodeIndicesInRadius(agentInfo.Location, agentInfo.FOV_Range*2) };
-	std::vector<int> unexploredNodes{};
-	for (const auto& nodeIdx : nodesInRadius)
+	if (m_ReachedTarget)
 	{
-		const auto& node{ m_pInfluenceMap->GetNode(nodeIdx) };
+		const auto& nodesInRadius{ m_pInfluenceMap->GetNodeIndicesInRadius(agentInfo.Location, agentInfo.FOV_Range * 2) };
 
-		if (!node->GetScanned())
-			unexploredNodes.emplace_back(nodeIdx);
+		std::vector<int> unexploredNodes{};
+		for (const auto& nodeIdx : nodesInRadius)
+		{
+			const auto& node{ m_pInfluenceMap->GetNode(nodeIdx) };
+
+			if (!node->GetScanned())
+				unexploredNodes.emplace_back(nodeIdx);
+		}
+
+		if (unexploredNodes.empty())
+			return Wander::CalculateSteering(deltaT, pInterface);
+
+		auto closestUnexploredNode{ m_pInfluenceMap->GetNode(unexploredNodes[0]) };
+		for (const int unexploredIdx : unexploredNodes)
+		{
+			const auto& unexploredNode{ m_pInfluenceMap->GetNode(unexploredIdx) };
+
+			if (unexploredNode->GetPosition().DistanceSquared(agentInfo.Location) < closestUnexploredNode->GetPosition().DistanceSquared(agentInfo.Location))
+				closestUnexploredNode = unexploredNode;
+		}
+
+		std::cout << "Explore; Setting new target\n";
+		m_Target.Position = closestUnexploredNode->GetPosition();
 	}
+	
 
-	if (unexploredNodes.empty())
-		return Wander::CalculateSteering(deltaT, pInterface);
 
-	auto closestUnexploredNode{ m_pInfluenceMap->GetNode(unexploredNodes[0]) };
-	for (const int unexploredIdx : unexploredNodes)
+	if (m_Target.Position.DistanceSquared(agentInfo.Location) < agentInfo.GrabRange * agentInfo.GrabRange)
 	{
-		const auto& unexploredNode{ m_pInfluenceMap->GetNode(unexploredIdx) };
+		std::cout << "Explore; Reached target\n";
 
-		if (unexploredNode->GetPosition().DistanceSquared(agentInfo.Location) < closestUnexploredNode->GetPosition().DistanceSquared(agentInfo.Location))
-			closestUnexploredNode = unexploredNode;
+		m_ReachedTarget = true;
+	}
+	else
+	{
+		m_ReachedTarget = false;
 	}
 
 	Seek seek{};
-	seek.SetTarget(closestUnexploredNode->GetPosition());
+	seek.SetTarget(m_Target.Position);
 	steering = seek.CalculateSteering(deltaT, pInterface);
 
 	return steering;
@@ -205,33 +225,46 @@ SteeringPlugin_Output Explore::CalculateSteering(float deltaT, const IExamInterf
 
 SteeringPlugin_Output ExploreArea::CalculateSteering(float deltaT, const IExamInterface* pInterface)
 {
-	//Set explored status, fall back to wander if explored
-	if (m_AreaToExplore.empty())
-	{
-		m_Explored = true;
-		return Wander::CalculateSteering(deltaT, pInterface);
-	}
-	else
-		m_Explored = false;
-
-	std::cout << "ExploringArea\n";
 	SteeringPlugin_Output steering{};
 	const WorldInfo worldInfo{ pInterface->World_GetInfo() };
 	const AgentInfo& agentInfo{ pInterface->Agent_GetInfo() };
 
-	//Find closest unexplored node
-	auto closestUnexploredNode{ m_pInfluenceMap->GetNode(*m_AreaToExplore.begin())};
-	for (const int nodeIdx : m_AreaToExplore)
+	if (m_ReachedTarget)
 	{
-		const auto& node{ m_pInfluenceMap->GetNode(nodeIdx) };
+		////Find closest unexplored node
+		//auto closestUnexploredNode{ m_pInfluenceMap->GetNode(*m_AreaToExplore.begin()) };
+		//for (const int nodeIdx : m_AreaToExplore)
+		//{
+		//	const auto& node{ m_pInfluenceMap->GetNode(nodeIdx) };
+		//	if (node->GetScanned())
+		//		m_AreaToExplore.erase(nodeIdx);
 
-		if (node->GetPosition().DistanceSquared(agentInfo.Location) < closestUnexploredNode->GetPosition().DistanceSquared(agentInfo.Location))
-			closestUnexploredNode = node;
+		//	if (node->GetPosition().DistanceSquared(agentInfo.Location) < closestUnexploredNode->GetPosition().DistanceSquared(agentInfo.Location))
+		//		closestUnexploredNode = node;
+		//}
+
+		for (auto it = m_AreaToExplore.begin(); it != m_AreaToExplore.end(); ) {
+			const auto& node{ m_pInfluenceMap->GetNode(*it) };
+			if (node->GetScanned())
+				it = m_AreaToExplore.erase(it);
+			else
+				++it;
+		}
+		
+
+		if(!m_AreaToExplore.empty())
+			m_Target.Position = m_pInfluenceMap->GetNode(*m_AreaToExplore.begin())->GetPosition();
+
 	}
+
+	//TODO: grabRange * 1.5f = m_CellSize
+	float arriveRange{ agentInfo.GrabRange * 1.5f };
+	m_ReachedTarget = m_Target.Position.DistanceSquared(agentInfo.Location) < arriveRange * arriveRange;
+
 
 	//Go to
 	Seek seek{};
-	seek.SetTarget(closestUnexploredNode->GetPosition());
+	seek.SetTarget(m_Target.Position);
 	steering = seek.CalculateSteering(deltaT, pInterface);
 
 	return steering;
@@ -282,7 +315,12 @@ SteeringPlugin_Output NavigateInfluence::CalculateSteering(float deltaT, const I
 	
 	// Go to
 	Seek seek{};
-	seek.SetTarget(m_pInfluenceMap->GetNode(highestIdx)->GetPosition());
+	if (m_Target.Position.DistanceSquared(agentInfo.Location) < agentInfo.GrabRange * agentInfo.GrabRange)
+	{
+		m_Target.Position = m_pInfluenceMap->GetNode(highestIdx)->GetPosition();
+	}
+
+	seek.SetTarget(m_Target.Position);
 	steering = seek.CalculateSteering(deltaT, pInterface);
 
 	steering.AngularVelocity += lookAtSteering.AngularVelocity;

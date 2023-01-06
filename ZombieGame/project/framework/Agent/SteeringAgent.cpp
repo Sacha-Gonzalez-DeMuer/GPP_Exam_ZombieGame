@@ -143,11 +143,6 @@ void SteeringAgent::SetToExploreArea()
 	m_pCurrentSteering = m_pExploreArea;
 }
 
-bool SteeringAgent::IsAreaExplored() const
-{
-	return std::dynamic_pointer_cast<ExploreArea>(m_pExploreArea)->IsExplored();
-}
-
 void SteeringAgent::SetToExploreArea(std::unordered_set<int> area)
 {
 	m_pCurrentSteering = m_pExploreArea;
@@ -157,4 +152,9 @@ void SteeringAgent::SetToExploreArea(std::unordered_set<int> area)
 void SteeringAgent::AddToExploreArea(std::unordered_set<int> toAdd)
 {
 	std::dynamic_pointer_cast<ExploreArea>(m_pExploreArea)->AddToArea(toAdd);
+}
+
+bool SteeringAgent::IsAreaExplored()
+{
+	return 	std::dynamic_pointer_cast<ExploreArea>(m_pExploreArea)->IsExplored();
 }

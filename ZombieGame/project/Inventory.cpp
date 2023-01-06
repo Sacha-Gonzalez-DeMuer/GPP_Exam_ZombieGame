@@ -64,12 +64,15 @@ float Inventory::CalculateItemValue(ItemInfo item)
 			break;
 
 		case eItemType::SHOTGUN:
+			if (!HasItem(eItemType::SHOTGUN) || !HasItem(eItemType::PISTOL))
+				value += 10;
+			value += m_pInterface->Weapon_GetAmmo(item) * 2;
+			break;
+
 		case eItemType::PISTOL:
 			if (!HasItem(eItemType::SHOTGUN) || !HasItem(eItemType::PISTOL))
 				value += 10;
 			value += m_pInterface->Weapon_GetAmmo(item);
-
-
 		break;
 	}
 
@@ -82,6 +85,15 @@ float Inventory::CalculateItemValue(ItemInfo item)
 		if (GetItem(i, inventoryItem) && inventoryItem.Type == item.Type)
 		{
 			--value;
+
+			// Adjust value depending on ammo if item is a weapon
+			if (item.Type == eItemType::PISTOL || item.Type == eItemType::SHOTGUN)
+			{
+				int invWeaponAmmo{ m_pInterface->Weapon_GetAmmo(inventoryItem) };
+				int itemAmmo{ m_pInterface->Weapon_GetAmmo(item) };
+				if (invWeaponAmmo > itemAmmo)
+					 value -= invWeaponAmmo;
+			}
 		}
 	}
 
@@ -199,8 +211,10 @@ bool Inventory::UseItem(eItemType type)
 	{
 		if (GetItem(i, item) && item.Type == type)
 		{
-			UseItem(i);
-			return true;
+			if (UseItem(i))
+			{
+				return true;
+			}
 		}
 	}
 

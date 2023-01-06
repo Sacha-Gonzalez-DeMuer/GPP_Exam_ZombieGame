@@ -34,12 +34,12 @@ public:
 	void SetRadius(const float radius) { m_Radius = radius; };
 	void SetAutoOrient(bool enabled) { m_AutoOrient = enabled; };
 	void SetRunMode(bool enabled) { m_RunMode = enabled; };
-	template<class T, typename std::enable_if<std::is_base_of<ISteeringBehavior, T>::value>::type* = nullptr>
-	T* As()
-	{ return static_cast<T*>(this); }
+	template<class T_MemoryObject, typename std::enable_if<std::is_base_of<ISteeringBehavior, T_MemoryObject>::value>::type* = nullptr>
+	T_MemoryObject* As()
+	{ return static_cast<T_MemoryObject*>(this); }
 
 protected:
-	TargetData m_Target;
+	TargetData m_Target{};
 	float m_Radius{10.0f};
 
 	bool m_AutoOrient{true};
@@ -149,13 +149,16 @@ public:
 	virtual ~Explore() = default;
 
 	SteeringPlugin_Output CalculateSteering(float deltaT, const IExamInterface* pInterface) override;
+
+private:
+	bool m_ReachedTarget{ true };
 };
 
 
 ///////////////////////////////////////
 //EXPLORE AREA
 //****
-class ExploreArea : public Explore {
+class ExploreArea : public InfluenceNavigation {
 
 public:
 	ExploreArea() = default;
@@ -165,10 +168,10 @@ public:
 	void SetArea(std::unordered_set<int> area) { m_AreaToExplore = area; };
 	void AddToArea(std::unordered_set<int> toAdd) { m_AreaToExplore.insert(toAdd.begin(), toAdd.end()); };
 	std::unordered_set<int> GetArea() { return m_AreaToExplore; };
-	bool IsExplored() { return m_Explored; };
+	bool IsExplored() const { return m_AreaToExplore.empty(); };
 protected:
 	std::unordered_set<int> m_AreaToExplore{};
-	bool m_Explored{ false };
+	bool m_ReachedTarget{ true };
 };
 
 ///////////////////////////////////////

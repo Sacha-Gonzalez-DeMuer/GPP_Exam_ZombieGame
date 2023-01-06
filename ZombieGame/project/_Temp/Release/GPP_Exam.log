@@ -1,11 +1,11 @@
-﻿  BaseAgent.cpp
-  ISurvivorAgent.cpp
-  Inventory.cpp
+﻿  ISurvivorAgent.cpp
   Plugin.cpp
   SurvivorAgentMemory.cpp
+C:\Users\sacha\OneDrive\Documents\College\Howest\Gameplay-Programming\GPP_Exam\ZombieGame\project\SurvivorAgentMemory.cpp(138,21): warning C4018: '<': signed/unsigned mismatch
   Generating Code...
   SteeringBehaviors.cpp
-  EGraphRenderer.cpp
   GPP_PluginBase.lib(IBaseInterface.obj) : MSIL .netmodule or module compiled with /GL found; restarting link with /LTCG; add /LTCG to the link command line to improve linker performance
-LINK : fatal error C1900: Il mismatch between 'P1' version '20220421' and 'P2' version '20211117'
-LINK : fatal error LNK1257: code generation failed
+     Creating library _Temp\Release\GPP_Plugin.lib and object _Temp\Release\GPP_Plugin.exp
+  Generating code
+  Finished generating code
+  GPP_Exam.vcxproj -> C:\Users\sacha\OneDrive\Documents\College\Howest\Gameplay-Programming\GPP_Exam\ZombieGame\_DEMO_RELEASE\GPP_Plugin.dll

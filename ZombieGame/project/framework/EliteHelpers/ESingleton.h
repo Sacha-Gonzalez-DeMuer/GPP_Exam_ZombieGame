@@ -9,15 +9,15 @@
 
 namespace Elite
 {
-	template<typename T>
+	template<typename T_MemoryObject>
 	class ESingleton
 	{
 	public:
 		//=== Public Functions ===
-		static T* GetInstance() 
+		static T_MemoryObject* GetInstance() 
 		{
 			if (!m_pInstance)
-				m_pInstance = new T();
+				m_pInstance = new T_MemoryObject();
 			return m_pInstance;
 		};
 		static void Destroy() 
@@ -32,14 +32,14 @@ namespace Elite
 		~ESingleton() = default;
 
 		//=== Datamembers ===
-		static T* m_pInstance;
+		static T_MemoryObject* m_pInstance;
 
 	private:
 		ESingleton(ESingleton const&) {};
 		ESingleton& operator=(ESingleton const&) {};
 	};
 
-	template<typename T>
-	typename T* ESingleton<T>::m_pInstance = 0;
+	template<typename T_MemoryObject>
+	typename T_MemoryObject* ESingleton<T_MemoryObject>::m_pInstance = 0;
 }
 #endif

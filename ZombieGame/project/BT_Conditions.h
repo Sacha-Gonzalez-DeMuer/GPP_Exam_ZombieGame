@@ -100,7 +100,7 @@ namespace BT_Conditions
 				Elite::AngleBetween(agentForward, toTarget))
 		};
 
-		constexpr float errorMargin{ 15.f };
+		constexpr float errorMargin{ 5.f };
 
 		return angleBetween < errorMargin;
 	}
@@ -193,7 +193,6 @@ namespace BT_Conditions
 		{
 			if (pInfluenceMap->GetNode(node)->GetInfluence() < -errorMargin)
 			{
-				std::cout << "Danger near!\n";
 				return true;
 			}
 		}
@@ -323,10 +322,14 @@ namespace BT_Conditions
 		const auto& pMemory{ GetMemory(pBlackboard) };
 		if (!pMemory)
 			return false;
-		if (pMemory->GetClearedHouses().size() >= pMemory->GetSeenHouses().size())
-			return  true;
-		else
-			return false;
+
+		if (pMemory->GetSeenHouses().empty() && !pMemory->GetClearedHouses().empty())
+		{
+			std::cout << "Cleared all seen houses :)\n";
+			return true;
+		}
+
+		return false;
 	}
 
 	bool IsHealthLow(Elite::Blackboard* pBlackboard)
@@ -394,7 +397,7 @@ namespace BT_Conditions
 
 		for (const auto& house : housesInFOV)
 		{
-			if (IsPointInRect(pSurvivor->GetInfo().Location, house->Center, house->Size))
+			if (IsPointInRect(pSurvivor->GetInfo().Location, house->Center, house->Size * .8f))
 				return true;
 		}
 

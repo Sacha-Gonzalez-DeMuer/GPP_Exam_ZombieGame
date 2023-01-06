@@ -3,7 +3,7 @@
 //SteeringParams (alias TargetData)
 struct SteeringParams //Also used as Target for SteeringBehaviors
 {
-	Elite::Vector2 Position;
+	Elite::Vector2 Position{FLT_MAX, FLT_MAX};
 	float Orientation;
 
 	Elite::Vector2 LinearVelocity;

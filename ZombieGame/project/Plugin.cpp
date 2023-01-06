@@ -5,6 +5,7 @@
 #include "../project/framework/SteeringBehaviors/Steering/SteeringBehaviors.h"
 #include "framework/EliteAI/EliteGraphs/EliteGraphUtilities/EGraphRenderer.h"
 #include "ISurvivorAgent.h"
+#include "Time.h"
 
 using namespace std;
 using namespace Elite;
@@ -60,11 +61,12 @@ void Plugin::InitGameDebugParams(GameDebugParams& params)
 	params.SpawnPurgeZonesOnMiddleClick = true;
 	params.PrintDebugMessages = true;
 	params.ShowDebugItemNames = true;
-	params.Seed = 36;
+	params.Seed = 4001;
 }
 
 void Plugin::Update(float dt)
 {
+	Time::Get()->Update(dt);
 	if (m_pInterface->Input_IsMouseButtonUp(Elite::InputMouseButton::eLeft))
 	{
 		//Update target based on input

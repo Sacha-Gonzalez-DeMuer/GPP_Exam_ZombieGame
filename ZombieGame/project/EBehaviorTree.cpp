@@ -1,6 +1,7 @@
 #include "stdafx.h"
 //=== General Includes ===
 #include "EBehaviorTree.h"
+#include "Time.h"
 using namespace Elite;
 
 //-----------------------------------------------------------------
@@ -145,4 +146,17 @@ BehaviorState Elite::BehaviorParallel::Execute(Blackboard* blackboard)
 	}
 
 	return BehaviorState::Running;
+}
+ 
+BehaviorState Elite::BehaviorWait::Execute(Blackboard* pBlackBoard)
+{
+	if (m_WaitTimer < m_WaitTime)
+	{
+		std::cout << "Waiting, " << m_WaitTimer;
+		m_WaitTimer += Time::Get()->DeltaTime();
+		return BehaviorState::Running;
+	}
+
+	m_WaitTimer = 0;
+	return BehaviorState::Success;
 }

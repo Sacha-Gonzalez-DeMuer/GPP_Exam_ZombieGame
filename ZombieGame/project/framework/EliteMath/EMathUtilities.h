@@ -19,8 +19,8 @@ namespace Elite {
 
 	/* --- FUNCTIONS --- */
 	/*! Comparing two values (preferably float or doubles) and see if they are equal. You can change the precision (by default: epsilon)*/
-	template<typename T, typename = std::enable_if<std::is_pod<T>::value>>
-	constexpr bool AreEqual(T a, T b, float precision = FLT_EPSILON)
+	template<typename T_MemoryObject, typename = std::enable_if<std::is_pod<T_MemoryObject>::value>>
+	constexpr bool AreEqual(T_MemoryObject a, T_MemoryObject b, float precision = FLT_EPSILON)
 	{
 		if (abs(a - b) > precision)
 			return false;
@@ -43,8 +43,8 @@ namespace Elite {
 		return f;
 	}
 	/*! Function to square a number */
-	template<typename T, typename = std::enable_if<std::is_pod<T>::value>>
-	constexpr auto Square(T v)
+	template<typename T_MemoryObject, typename = std::enable_if<std::is_pod<T_MemoryObject>::value>>
+	constexpr auto Square(T_MemoryObject v)
 	{
 		return v*v;
 	}
@@ -66,8 +66,8 @@ namespace Elite {
 		return a;
 	}
 	/*! Template function to clamp between a minimum and a maximum value -> in STD since c++17 */
-	template<typename T>
-	constexpr T Clamp(const T a, T min, T max)
+	template<typename T_MemoryObject>
+	constexpr T_MemoryObject Clamp(const T_MemoryObject a, T_MemoryObject min, T_MemoryObject max)
 	{
 		if (a < min)
 			return min;
@@ -79,8 +79,8 @@ namespace Elite {
 	}
 
 	/*! Template function to clamp between a minimum and a maximum value*/
-	template<typename T>
-	constexpr T ClampRef(T& a, T min, T max)
+	template<typename T_MemoryObject>
+	constexpr T_MemoryObject ClampRef(T_MemoryObject& a, T_MemoryObject min, T_MemoryObject max)
 	{
 		if (a < min)
 			a = min;
@@ -113,8 +113,8 @@ namespace Elite {
 	/*! Linear Interpolation */
 	/*inline float Lerp(float v0, float v1, float t)
 	{ return (1 - t) * v0 + t * v1;	}*/
-	template<typename T>
-	inline T Lerp(T v0, T v1, float t)
+	template<typename T_MemoryObject>
+	inline T_MemoryObject Lerp(T_MemoryObject v0, T_MemoryObject v1, float t)
 	{ return (1 - t) * v0 + t * v1;	}
 
 	/*! Smooth Step */
@@ -127,7 +127,7 @@ namespace Elite {
 	}
 
 	/*! Sign Function*/
-	template <typename T>  int sign(T val) 
-	{ return (T(0) < val) - (val < T(0)); }
+	template <typename T_MemoryObject>  int sign(T_MemoryObject val) 
+	{ return (T_MemoryObject(0) < val) - (val < T_MemoryObject(0)); }
 }
 #endif

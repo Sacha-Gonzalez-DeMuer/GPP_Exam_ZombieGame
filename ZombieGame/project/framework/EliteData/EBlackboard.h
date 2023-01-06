@@ -24,17 +24,17 @@ namespace Elite
 	};
 
 	//BlackboardField does not take ownership of pointers whatsoever!
-	template<typename T>
+	template<typename T_MemoryObject>
 	class BlackboardField : public IBlackBoardField
 	{
 	public:
-		explicit BlackboardField(T data) : m_Data(data)
+		explicit BlackboardField(T_MemoryObject data) : m_Data(data)
 		{}
-		T GetData() { return m_Data; };
-		void SetData(T data) { m_Data = data; }
+		T_MemoryObject GetData() { return m_Data; };
+		void SetData(T_MemoryObject data) { m_Data = data; }
 
 	private:
-		T m_Data;
+		T_MemoryObject m_Data;
 	};
 
 	//-----------------------------------------------------------------
@@ -58,45 +58,45 @@ namespace Elite
 
 
 		//Add data to the blackboard
-		template<typename T> bool AddData(const std::string& name, T data)
+		template<typename T_MemoryObject> bool AddData(const std::string& name, T_MemoryObject data)
 		{
 			auto it = m_BlackboardData.find(name);
 			if (it == m_BlackboardData.end())
 			{
-				m_BlackboardData[name] = new BlackboardField<T>(data);
+				m_BlackboardData[name] = new BlackboardField<T_MemoryObject>(data);
 				return true;
 			}
-			printf("WARNING: Data '%s' of type '%s' already in Blackboard \n", name.c_str(), typeid(T).name());
+			printf("WARNING: Data '%s' of type '%s' already in Blackboard \n", name.c_str(), typeid(T_MemoryObject).name());
 			return false;
 		}
 
 		//Change the data of the blackboard
-		template<typename T> bool ChangeData(const std::string& name, T data)
+		template<typename T_MemoryObject> bool ChangeData(const std::string& name, T_MemoryObject data)
 		{
 			auto it = m_BlackboardData.find(name);
 			if (it != m_BlackboardData.end())
 			{
-				BlackboardField<T>* p = dynamic_cast<BlackboardField<T>*>(m_BlackboardData[name]);
+				BlackboardField<T_MemoryObject>* p = dynamic_cast<BlackboardField<T_MemoryObject>*>(m_BlackboardData[name]);
 				if (p)
 				{
 					p->SetData(data);
 					return true;
 				}
 			}
-			printf("WARNING: Data '%s' of type '%s' not found in Blackboard \n", name.c_str(), typeid(T).name());
+			printf("WARNING: Data '%s' of type '%s' not found in Blackboard \n", name.c_str(), typeid(T_MemoryObject).name());
 			return false;
 		}
 
 		//Get the data from the blackboard
-		template<typename T> bool GetData(const std::string& name, T& data)
+		template<typename T_MemoryObject> bool GetData(const std::string& name, T_MemoryObject& data)
 		{
-			BlackboardField<T>* p = dynamic_cast<BlackboardField<T>*>(m_BlackboardData[name]);
+			BlackboardField<T_MemoryObject>* p = dynamic_cast<BlackboardField<T_MemoryObject>*>(m_BlackboardData[name]);
 			if (p != nullptr)
 			{
 				data = p->GetData();
 				return true;
 			}
-			printf("WARNING: Data '%s' of type '%s' not found in Blackboard \n", name.c_str(), typeid(T).name());
+			printf("WARNING: Data '%s' of type '%s' not found in Blackboard \n", name.c_str(), typeid(T_MemoryObject).name());
 			return false;
 		}
 

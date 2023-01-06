@@ -43,6 +43,7 @@ void ISurvivorAgent::Update(float deltaTime, IExamInterface* pInterface, Steerin
 	if(m_pCurrentSteering)
 		steering = m_pCurrentSteering->CalculateSteering(deltaTime, pInterface);
 
+	auto node{ m_pMemory->GetInfluenceMap()->GetNodeAtWorldPos(GetLocation()) };
 }
 
 void ISurvivorAgent::Render(float deltaTime, IExamInterface* pInterface)
@@ -54,7 +55,7 @@ bool ISurvivorAgent::IsInFOV(const EntityInfo& e) const
 {
 	for (auto entity : m_pEntitiesInFOV)
 	{
-		if (entity->Location == e.Location)
+		if (entity->Location.DistanceSquared(e.Location) < 4.0f) 
 		{
 			return true;
 		}
@@ -131,28 +132,21 @@ void ISurvivorAgent::InitializeBehaviorTree(IExamInterface* pInterface)
 			({
 				new BehaviorConditional(IsDangerNear),
 				new BehaviorWhile(new BehaviorConditional(IsEnemyInFOV), new BehaviorAction(ChangeToNavigateInfluenceMap), true),
-				//new BehaviorConditional(IsDangerNear),
-				//new BehaviorAction(ChangeToNavigateInfluenceMap),
-				new BehaviorSelector
+				new BehaviorAction(SetClosestEnemyAsTarget),
+
+				new BehaviorSelector //Fight/Flight Selector
+				({
+					new BehaviorSequence
 					({
-						new BehaviorSequence //Sees enemy
-						({
-							new BehaviorAction(SetClosestEnemyAsTarget),
-
-							new BehaviorSelector //Fight/Flight Selector
-							({
-								new BehaviorSequence
-								({
-									new BehaviorAction(EquipWeapon),
-									new TBehaviorAction<Elite::Vector2>(ShootTarget, GetClosestEnemyInFOV)
-								}),
-
-								new BehaviorWhile(new NotDecorator(HasWeapon), new BehaviorAction(ChangeToFleeLookingAt))
-							})
-						}),
+						new BehaviorAction(EquipWeapon),
+						new TBehaviorAction<Elite::Vector2>(ShootTarget, GetClosestEnemyInFOV),
 					}),
-			}),
 
+
+					//new BehaviorAction(FleeToNearestHouse)
+				})
+			}),
+		 //
 
 			//============= INVENTORY MANAGEMENT SELECTOR =============//
 			new BehaviorSelector
@@ -169,8 +163,6 @@ void ISurvivorAgent::InitializeBehaviorTree(IExamInterface* pInterface)
 					new BehaviorAction(DropGarbage)
 				})
 			}),
-
-
 
 
 			//============= SURVIVOR SELECTOR =============//
@@ -193,6 +185,14 @@ void ISurvivorAgent::InitializeBehaviorTree(IExamInterface* pInterface)
 			//============= LOOTING SELECTOR =============//
 			new BehaviorSelector 
 			({
+				new BehaviorSequence //Free looting Sequence
+				({
+					//new NotDecorator(IsInventoryFull),
+					new BehaviorConditional(IsInventoryFull, true),
+					new BehaviorConditional(HasSeenItem),
+					new TBehaviorAction<Elite::Vector2>(GrabItem, GetClosestKnownItemPos),
+				}),
+
 				new BehaviorSequence //Urgent Looting Sequence
 				({
 					new BehaviorConditional(NeedsItem),
@@ -200,9 +200,8 @@ void ISurvivorAgent::InitializeBehaviorTree(IExamInterface* pInterface)
 					new BehaviorSelector //try finding needed item
 					({
 						new TBehaviorAction<Elite::Vector2, eItemType>(GoTo, GetClosestKnownItemTypePos, GetNeededItemType),
-						new TBehaviorAction<std::unordered_set<int>>(ChangeToExploreArea, GetClosestUnvisitedHouseArea)		
+						new TBehaviorAction<std::unordered_set<int>>(ChangeToExploreArea, GetClosestUnvisitedHouseArea)
 					}),
-
 
 					new BehaviorSelector
 					({
@@ -214,33 +213,6 @@ void ISurvivorAgent::InitializeBehaviorTree(IExamInterface* pInterface)
 
 						new TBehaviorAction<Elite::Vector2, eItemType>(GrabItem, GetClosestKnownItemTypePos, GetNeededItemType)
 					}),
-
-				}),
-
-				new BehaviorSequence //Free looting Sequence
-				({
-					new NotDecorator(IsInventoryFull),
-					new BehaviorConditional(HasSeenItem),
-					new TBehaviorAction<Elite::Vector2>(GrabItem, GetClosestKnownItemPos),
-
-					//new BehaviorSequence //Reward Near
-					//	({
-					//		new BehaviorSelector
-					//		({
-					//			new BehaviorSequence
-					//			({
-					//				new NotDecorator(IsItemInFOV),
-					//				new BehaviorAction(ChangeToLookAround)
-					//			}),
-
-					//			new BehaviorSequence
-					//			({
-					//				new BehaviorAction(GoToClosestEntity),
-					//				new BehaviorAction(GrabItem)
-					//			}),
-					//		}),
-					//	}),
-
 				}),
 			}), 
 
@@ -248,33 +220,10 @@ void ISurvivorAgent::InitializeBehaviorTree(IExamInterface* pInterface)
 			//============= EXPLORATION SELECTOR =============//
 			new BehaviorSelector
 			({
-				new BehaviorSequence //Local exploration
+				new BehaviorSequence //Visit unvisited houses
 				({
-					new NotDecorator(AreaScanned),
-					new BehaviorAction(ChangeToLookAround)
-				}),
-
-				new BehaviorSelector //House exploration
-				({
-					new BehaviorSequence
-					({
-						new BehaviorConditional(IsInHouse),
-						new TBehaviorConditional<HouseInfo*>(IsHouseCleared, GetClosestHouseInFOV),
-						new BehaviorAction(ExitHouse)
-					}),
-
-					new BehaviorSequence //Visit unvisited houses
-					({
-						new BehaviorConditional(HasSeenHouse),
-						new NotDecorator(HasVisitedAllSeenHouses),
-						new TBehaviorAction<std::unordered_set<int>>(ChangeToExploreArea, GetClosestUnvisitedHouseArea)
-					}),
-				}),
-
-				new BehaviorSequence //World exploration
-				({
-					new BehaviorConditional(IsRewardNear),
-					new BehaviorAction(ChangeToNavigateInfluenceMap)
+					new BehaviorConditional(HasVisitedAllSeenHouses, true),
+					new TBehaviorAction<std::unordered_set<int>>(ChangeToExploreArea, GetClosestUnvisitedHouseArea)
 				}),
 
 				new BehaviorAction(ChangeToExplore)
@@ -300,3 +249,4 @@ Elite::Blackboard* ISurvivorAgent::CreateBlackboard(IExamInterface* pInterface)
 
 	return pBlackboard;
 }
+
