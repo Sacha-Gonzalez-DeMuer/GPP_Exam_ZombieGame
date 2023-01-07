@@ -119,7 +119,7 @@ namespace Elite
 	{
 	public:
 		explicit BehaviorConditional(std::function<bool(Blackboard*)> fp) : m_fpConditional(fp) {}
-		explicit BehaviorConditional(std::function<bool(Blackboard*)> fp, float invert) 
+		explicit BehaviorConditional(std::function<bool(Blackboard*)> fp, bool invert) 
 			: m_fpConditional(fp), m_InvertCondition(invert) {}
 		virtual BehaviorState Execute(Blackboard* pBlackBoard) override;
 
@@ -232,6 +232,9 @@ namespace Elite
 		explicit TBehaviorAction(std::function<BehaviorState(Blackboard*, T1)> fp, std::function<T1(Blackboard*)> objFunction)
 			: m_fpAction(fp), m_ObjFunc(objFunction) {}
 
+		explicit TBehaviorAction(std::function<BehaviorState(Blackboard*, T1)> fp, std::function<T1(Blackboard*, T2)> objFunction, T2 obj)
+			: m_fpAction2(fp), m_ObjFunc1(objFunction), m_Obj(obj) {}
+
 		explicit TBehaviorAction(std::function<BehaviorState(Blackboard*, T1)> fp, std::function<T1(Blackboard*, T2)> objFunction, std::function<T2(Blackboard*)> objFunction2)
 		: m_fpAction2(fp), m_ObjFunc1(objFunction), m_ObjFunc2(objFunction2) {}
 
@@ -242,14 +245,20 @@ namespace Elite
 			if (m_fpAction) {
 				m_CurrentState = m_fpAction(pBlackboard, m_ObjFunc(pBlackboard));
 				return m_CurrentState;
+			} 
+			else if (m_HasObject)
+			{
+				auto t1{ m_ObjFunc1(pBlackboard, m_Obj) };
+				m_CurrentState = m_fpAction(pBlackboard, t1);
+				return m_CurrentState;
 			}
 			else if (m_fpAction2) {
-				auto t2{ m_ObjFunc2(pBlackboard)};
-				auto t1{ m_ObjFunc1(pBlackboard, t2) };
+				auto t2{ m_ObjFunc2(pBlackboard)}; //run t2 to get needed object type
+				auto t1{ m_ObjFunc1(pBlackboard, t2) }; //run t1 with fetched object type
 
 				m_CurrentState = m_fpAction2(pBlackboard, t1);
 				return m_CurrentState;
-			}
+			} 
 			return BehaviorState::Failure;
 		}
 
@@ -261,6 +270,9 @@ namespace Elite
 		std::function<BehaviorState(Blackboard*, T1)> m_fpAction2 = nullptr;
 		std::function<T1(Blackboard*, T2)> m_ObjFunc1 = nullptr;
 		std::function<T2(Blackboard*)> m_ObjFunc2 = nullptr;
+
+		T2 m_Obj;
+		bool m_HasObject{ false };
 	};
 
 

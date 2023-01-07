@@ -89,6 +89,8 @@ namespace BT_Actions
 		{
 			if (entity->Type == eEntityType::ITEM && pInventory->GrabItem(*entity, item) && pMemory->OnPickUpItem(item))
 			{
+
+
 				return SUCCESS;
 			}
 		}
@@ -300,17 +302,17 @@ namespace BT_Actions
 		if (!pSurvivor)
 			return {};
 
-		auto seenHouses{ pMemory->GetLocatedHouses() };
-		if (seenHouses.empty())
+		auto locatedHouses{ pMemory->GetLocatedHouses() };
+		if (locatedHouses.empty())
 			return {};
 
 		//Determine unvisited closest house
 		EHouseInfo* closestHouse{ nullptr };
 		std::unordered_set<int> area{ };
 
-		for (auto& house : seenHouses)
+		for (auto& house : locatedHouses)
 		{
-			if (!closestHouse)
+			if (!closestHouse && !house.second.Cleared)
 				closestHouse = &house.second;
 
 			if (!pMemory->IsHouseCleared(house.second, area)
@@ -320,22 +322,35 @@ namespace BT_Actions
 			}
 		}
 
+		if (closestHouse == nullptr)
+			return {};
+
 		std::unordered_set<int> unclearedArea{};
 		for (int idx : area)
 		{
 			if (!pMemory->GetInfluenceMap()->GetNode(idx)->GetScanned())
-				unclearedArea.insert(idx);
+				unclearedArea.insert(idx); 
 		}
 
-		return area;
+
+		return unclearedArea;
 	}
 
 	eItemType GetNeededItemType(Elite::Blackboard* pBlackboard)
 	{
-		//Get necessary data
+		// Get necessary data
 		const auto& pSurvivor{ GetSurvivor(pBlackboard) };
+		if (!pSurvivor)
+			return eItemType::INVALID;
+		const auto& pInventory{ GetInventory(pBlackboard) };
+		if (!pInventory)
+			return eItemType::INVALID;
 
-		//Determine needed item
+
+		// Determine needed item (top to bottom priority)
+		if (!pInventory->HasWeapon())
+			return eItemType::WEAPON;
+
 		if (pSurvivor->GetInfo().Energy < pSurvivor->GetInfo().LowEnergyThreshold)
 			return eItemType::FOOD;
 
@@ -347,7 +362,7 @@ namespace BT_Actions
 
 	Elite::Vector2 GetClosestKnownItemPos(Elite::Blackboard* pBlackboard)
 	{
-		//Get necessary data
+		// Get necessary data
 		auto pMemory{ GetMemory(pBlackboard) };
 		if (!pMemory)
 			return INVALID_VECTOR2;
@@ -358,7 +373,7 @@ namespace BT_Actions
 		if (items.empty())
 			return INVALID_VECTOR2;
 
-		//Find closest located item
+		// Find closest located item
 		Elite::Vector2 closestItem{ INVALID_VECTOR2 };
 		const auto& pInfluenceMap(pMemory->GetInfluenceMap());
 		const auto& agentInfo{ pSurvivor->GetInfo() };
@@ -381,7 +396,7 @@ namespace BT_Actions
 		if (type == eItemType::INVALID)
 			return { FLT_MAX, FLT_MAX };
 
-		//Get necessary data
+		// Get necessary data
 		auto pMemory{ GetMemory(pBlackboard) };
 		if (!pMemory)
 			return INVALID_VECTOR2;
@@ -392,7 +407,7 @@ namespace BT_Actions
 		if (itemIndices.empty())
 			return INVALID_VECTOR2;
 
-		//Find closest located item
+		// Find closest located item
 		Elite::Vector2 closestItem{ FLT_MAX, FLT_MAX };
 		const auto& pInfluenceMap(pMemory->GetInfluenceMap());
 		const auto& agentInfo{ pSurvivor->GetInfo() };
@@ -400,7 +415,18 @@ namespace BT_Actions
 		{
 			const auto& itemNode{ pInfluenceMap->GetNode(itemIdx) };
 
-			if (itemNode->GetItem() != type)
+			if (itemNode->GetItem() == eItemType::INVALID)
+				continue;
+
+			// If needed type is a weapon but item on node is not, continue
+			if (type == eItemType::WEAPON &&
+				!(itemNode->GetItem() == eItemType::PISTOL
+					|| itemNode->GetItem() == eItemType::SHOTGUN))
+				continue;
+
+			// Continue if item on node is not needed type
+			// Ignore when need a weapon, since the item on node will never be "weapon"
+			if(type != eItemType::WEAPON && itemNode->GetItem() != type)
 				continue;
 
 			if (agentInfo.Location.DistanceSquared(itemNode->GetPosition()) <
@@ -444,7 +470,7 @@ namespace BT_Actions
 		auto pInventory{ GetInventory(pBlackboard) };
 		if (!pInventory)
 			return FAILURE;
-		std::cout << "eating\n";
+
 		if (pInventory->UseItem(eItemType::FOOD))
 			return SUCCESS;
 
@@ -457,8 +483,8 @@ namespace BT_Actions
 		if (!pInventory)
 			return FAILURE;
 
-		//if (pInventory->DropItem(eItemType::GARBAGE))
-		//	return SUCCESS;
+		if (pInventory->DropItem(eItemType::GARBAGE))
+			return SUCCESS;
 
 		return FAILURE;
 	}
@@ -482,10 +508,11 @@ namespace BT_Actions
 		if (!pInventory)
 			return FAILURE;
 
-		//Drop item with least value
-		if (pInventory->DropItem(pInventory->GetLowestValueItem()))
-			return SUCCESS;
 
+
+		//Drop item with least value
+		if (pInventory->DropItem(pInventory->GetEmptyItemIdx()))
+			return SUCCESS;
 
 		return FAILURE;
 	}
@@ -503,8 +530,15 @@ namespace BT_Actions
 		if (!pInventory)
 			return FAILURE;
 
+		if(!(pInventory->HasItem(eItemType::SHOTGUN) || pInventory->HasItem(eItemType::PISTOL)))
+			return FAILURE;
+
+
 		const float errorMargin{ 5.0f };
 		pSurvivor->SetToLookAt(target);
+		if (Elite::ToDegrees(Elite::AngleBetween(pSurvivor->GetDirection(), target - pSurvivor->GetLocation())) > errorMargin)
+			return RUNNING;
+
 		if (Elite::ToDegrees(Elite::AngleBetween(pSurvivor->GetDirection(), target - pSurvivor->GetLocation())) > errorMargin)
 			return RUNNING;
 

@@ -47,3 +47,4 @@
 #define SAFE_DELETE(p) if (p) { delete (p); (p) = nullptr; }
 #define INPUTMANAGER Elite::EInputManager::GetInstance()
 #define INVALID_VECTOR2 Elite::Vector2(FLT_MAX, FLT_MAX)
+#define INVALID_INDEX UINT_MAX

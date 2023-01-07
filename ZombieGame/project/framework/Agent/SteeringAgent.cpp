@@ -109,6 +109,9 @@ void SteeringAgent::SetToFleeLookingAt(const Elite::Vector2& target)
 
 void SteeringAgent::SetToExplore()
 {
+	// Reset behavior (so that he doesn't go to his old target)
+	std::dynamic_pointer_cast<Explore>(m_pExplore)->SetReachedTarget(true);
+
 	m_pCurrentSteering = m_pExplore;
 }
 
@@ -140,11 +143,17 @@ void SteeringAgent::SetToNavigateInfluenceMap()
 
 void SteeringAgent::SetToExploreArea()
 {
+	// Reset behavior (so that he doesn't go to his old target)
+	std::dynamic_pointer_cast<ExploreArea>(m_pExploreArea)->SetReachedTarget(true);
+
 	m_pCurrentSteering = m_pExploreArea;
 }
 
 void SteeringAgent::SetToExploreArea(std::unordered_set<int> area)
 {
+	// Reset behavior (so that he doesn't go to his old target)
+	std::dynamic_pointer_cast<ExploreArea>(m_pExploreArea)->SetReachedTarget(true);
+
 	m_pCurrentSteering = m_pExploreArea;
 	std::dynamic_pointer_cast<ExploreArea>(m_pExploreArea)->SetArea(area);
 }
@@ -156,5 +165,5 @@ void SteeringAgent::AddToExploreArea(std::unordered_set<int> toAdd)
 
 bool SteeringAgent::IsAreaExplored()
 {
-	return 	std::dynamic_pointer_cast<ExploreArea>(m_pExploreArea)->IsExplored();
+	return std::dynamic_pointer_cast<ExploreArea>(m_pExploreArea)->IsExplored();
 }

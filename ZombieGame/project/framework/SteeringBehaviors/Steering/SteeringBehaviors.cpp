@@ -7,6 +7,7 @@
 #include "../../EliteMath/EVector2.h"
 #include "../../EliteMath/EMathUtilities.h"
 #include "../../EliteAI/EliteGraphs/EInfluenceMap.h"
+#include "../../EliteGeometry/EGeometry2DUtilities.h"
 #include "IExamInterface.h"
 
 //
@@ -142,8 +143,8 @@ SteeringPlugin_Output LookAt::CalculateSteering(float deltaT, const IExamInterfa
 	float deltaAngle = targetAngle - agentAngle;
 
 	// Make sure deltaAngle is between -pi and pi
-	while (deltaAngle > M_PI) deltaAngle -= 2 * M_PI;
-	while (deltaAngle < -M_PI) deltaAngle += 2 * M_PI;
+	while (deltaAngle > M_PI) deltaAngle -= 2 * static_cast<float>(M_PI);
+	while (deltaAngle < -M_PI) deltaAngle += 2 * static_cast<float>(M_PI);
 
 	if (abs(deltaAngle) <= .02f)
 	{
@@ -164,8 +165,6 @@ SteeringPlugin_Output LookAt::CalculateSteering(float deltaT, const IExamInterfa
 
 SteeringPlugin_Output Explore::CalculateSteering(float deltaT, const IExamInterface* pInterface)
 {
-	std::cout << "Exploring \n";
-
 	SteeringPlugin_Output steering{};
 	const WorldInfo worldInfo{ pInterface->World_GetInfo() };
 	const AgentInfo& agentInfo{ pInterface->Agent_GetInfo() };
@@ -173,7 +172,23 @@ SteeringPlugin_Output Explore::CalculateSteering(float deltaT, const IExamInterf
 
 	if (m_ReachedTarget)
 	{
-		const auto& nodesInRadius{ m_pInfluenceMap->GetNodeIndicesInRadius(agentInfo.Location, agentInfo.FOV_Range * 2) };
+		std::unordered_set<int> nodesInRadius{};
+		// Allow agent to go further than center radius before having to return (m_CenterRadiusDenominator * 2)
+		const bool isFarFromCenter{ agentInfo.Location.Distance(worldInfo.Center) > (worldInfo.Dimensions.x / m_CenterRadiusDenominator) * 1.5f};
+
+		// If too far from center, get an unexplored node around the center
+		if (isFarFromCenter)
+		{
+			// Get node within world center
+			nodesInRadius = m_pInfluenceMap->GetNodeIndicesInRadius(worldInfo.Center, worldInfo.Dimensions.x / m_CenterRadiusDenominator);
+			SetRunMode(true);
+		}
+		else
+		{
+			// Otherwise find node around agent himself
+			nodesInRadius = m_pInfluenceMap->GetNodeIndicesInRadius(agentInfo.Location, agentInfo.FOV_Range * 2);
+			SetRunMode(false);
+		}
 
 		std::vector<int> unexploredNodes{};
 		for (const auto& nodeIdx : nodesInRadius)
@@ -185,7 +200,12 @@ SteeringPlugin_Output Explore::CalculateSteering(float deltaT, const IExamInterf
 		}
 
 		if (unexploredNodes.empty())
+		{
+			if (isFarFromCenter && m_CenterRadiusDenominator > 1) // if entire center explored
+				--m_CenterRadiusDenominator; // extend center radius
+
 			return Wander::CalculateSteering(deltaT, pInterface);
+		}
 
 		auto closestUnexploredNode{ m_pInfluenceMap->GetNode(unexploredNodes[0]) };
 		for (const int unexploredIdx : unexploredNodes)
@@ -196,16 +216,14 @@ SteeringPlugin_Output Explore::CalculateSteering(float deltaT, const IExamInterf
 				closestUnexploredNode = unexploredNode;
 		}
 
-		std::cout << "Explore; Setting new target\n";
 		m_Target.Position = closestUnexploredNode->GetPosition();
 	}
 	
 
+	float arriveRange{ agentInfo.GrabRange * 1.5f };
 
-	if (m_Target.Position.DistanceSquared(agentInfo.Location) < agentInfo.GrabRange * agentInfo.GrabRange)
+	if (m_Target.Position.DistanceSquared(agentInfo.Location) < arriveRange * arriveRange)
 	{
-		std::cout << "Explore; Reached target\n";
-
 		m_ReachedTarget = true;
 	}
 	else
@@ -226,6 +244,7 @@ SteeringPlugin_Output ExploreArea::CalculateSteering(float deltaT, const IExamIn
 	SteeringPlugin_Output steering{};
 	const WorldInfo worldInfo{ pInterface->World_GetInfo() };
 	const AgentInfo& agentInfo{ pInterface->Agent_GetInfo() };
+
 
 	if (m_ReachedTarget)
 	{
@@ -293,13 +312,6 @@ SteeringPlugin_Output NavigateInfluence::CalculateSteering(float deltaT, const I
 		}
 	}
 
-	if (highestIdx == -1)
-	{
-		LookAround lookAround{};
-		steering = lookAround.CalculateSteering(deltaT, pInterface);
-		return steering;
-	}
-
 	//const auto& lowestInfluenceNode{ m_pInfluenceMap->GetNode(lowestIdx) };
 	const bool isDangerous{ m_pInfluenceMap->GetNodeAtWorldPos(agentInfo.Location)->GetInfluence() < 0.0f };
 	SetRunMode(isDangerous); //danger, run
@@ -308,22 +320,11 @@ SteeringPlugin_Output NavigateInfluence::CalculateSteering(float deltaT, const I
 	// Go to
 	Seek seek{};
 	seek.SetAutoOrient(false);
-	if (m_Target.Position.DistanceSquared(agentInfo.Location) < agentInfo.GrabRange * agentInfo.GrabRange)
-	{
-		m_Target.Position = m_pInfluenceMap->GetNode(highestIdx)->GetPosition();
-	}
-
-	seek.SetTarget(m_Target.Position);
+	seek.SetTarget(m_pInfluenceMap->GetNode(highestIdx)->GetPosition());
 	steering = seek.CalculateSteering(deltaT, pInterface);
 
 
-	// Look at danger
-	LookAt lookAt{};
-	lookAt.SetTarget(-agentInfo.LinearVelocity);
-	SteeringPlugin_Output lookAtSteering{};
-	lookAtSteering = lookAt.CalculateSteering(deltaT, pInterface);
-
-	steering.AngularVelocity += lookAtSteering.AngularVelocity;
+	steering.AngularVelocity = agentInfo.MaxAngularSpeed;
 	steering.AutoOrient = !isDangerous;
 	return steering;
 }

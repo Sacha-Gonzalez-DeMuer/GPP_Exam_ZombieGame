@@ -158,6 +158,24 @@ namespace Elite
 		return point;
 	}
 
+	inline Vector2 GetRandomPointWithinCircle(Vector2 circlePos, float radius)
+	{
+		// Generate a random angle in radians.
+		float angle = Elite::randomFloat(0, static_cast<float>(M_PI * 2));
+
+		// Generate a random distance within the radius.
+		float distance = Elite::randomFloat(0, radius);
+
+		// Calculate the x and y components of the point using the distance and angle.
+		float x = distance * std::cos(angle);
+		float y = distance * std::sin(angle);
+
+		// Offset the point by the position of the circle.
+		Vector2 point = { x + circlePos.x, y + circlePos.y };
+
+		return point;
+	}
+
 	/*! Check if point is on a line */
 	inline auto IsPointOnLine(const Vector2& lineStart, const Vector2& lineEnd, const Vector2& point)
 	{

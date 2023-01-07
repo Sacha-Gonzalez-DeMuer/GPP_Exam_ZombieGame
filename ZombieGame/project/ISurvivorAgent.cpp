@@ -131,16 +131,23 @@ void ISurvivorAgent::InitializeBehaviorTree(IExamInterface* pInterface)
 			new BehaviorSequence
 			({
 				new BehaviorConditional(IsDangerNear),
-				new BehaviorWhile(new BehaviorConditional(IsEnemyInFOV), new BehaviorAction(ChangeToNavigateInfluenceMap), true),
-				new BehaviorSelector //Fight/Flight Selector
+				new BehaviorWhile(new NotDecorator(IsEnemyInFOV), new BehaviorAction(ChangeToNavigateInfluenceMap)),
+
+				//Fight/Flight Selector
+				new BehaviorSelector 
 				({
-					new BehaviorSequence
+					new TBehaviorAction<Elite::Vector2>(ShootTarget, GetClosestEnemyInFOV), // fight
+
+					new BehaviorSelector // Flight, but where to?
 					({
-						new TBehaviorAction<Elite::Vector2>(ShootTarget, GetClosestEnemyInFOV),
+						new BehaviorSequence //to known weapon
+						({
+							new BehaviorConditional(HasSeenWeapon),
+							new TBehaviorAction<Elite::Vector2, eItemType>(GoTo, GetClosestKnownItemTypePos, eItemType::WEAPON)
+						}),
+
+						new BehaviorAction(FleeToNearestHouse) //nearest house
 					}),
-
-
-					//new BehaviorAction(FleeToNearestHouse)
 				})
 			}),
 
@@ -150,7 +157,7 @@ void ISurvivorAgent::InitializeBehaviorTree(IExamInterface* pInterface)
 				new BehaviorSequence
 				({
 					new BehaviorConditional(HasEmptyItem),
-					new BehaviorAction(DropLeastValuableItem)
+					new BehaviorAction(DropEmptyItems)
 				}),
 
 				new BehaviorSequence
@@ -181,22 +188,31 @@ void ISurvivorAgent::InitializeBehaviorTree(IExamInterface* pInterface)
 			//============= LOOTING SELECTOR =============//
 			new BehaviorSelector 
 			({
-				new BehaviorSequence //Free looting Sequence
+				//Free looting Sequence
+				//====
+				new BehaviorSequence 
 				({
-					//new NotDecorator(IsInventoryFull),
-					new BehaviorConditional(IsInventoryFull, true),
+					new NotDecorator(IsInventoryFull),
 					new BehaviorConditional(HasSeenItem),
 					new TBehaviorAction<Elite::Vector2>(GrabItem, GetClosestKnownItemPos),
 				}),
 
-				new BehaviorSequence //Urgent Looting Sequence
+
+				//Urgent Looting Sequence		
+				//====
+				new BehaviorSequence 									
 				({
 					new BehaviorConditional(NeedsItem),
 
 					new BehaviorSelector //try finding needed item
 					({
 						new TBehaviorAction<Elite::Vector2, eItemType>(GoTo, GetClosestKnownItemTypePos, GetNeededItemType),
-						new TBehaviorAction<std::unordered_set<int>>(ChangeToExploreArea, GetClosestUnvisitedHouseArea)
+						new BehaviorSequence
+						({
+							new NotDecorator(ClearedAllLocatedHouses),
+							new TBehaviorAction<std::unordered_set<int>>(ChangeToExploreArea, GetClosestUnvisitedHouseArea)
+
+						})
 					}),
 
 					new BehaviorSelector
@@ -216,7 +232,11 @@ void ISurvivorAgent::InitializeBehaviorTree(IExamInterface* pInterface)
 			//============= EXPLORATION SELECTOR =============//
 			new BehaviorSelector
 			({
-				new TBehaviorAction<std::unordered_set<int>>(ChangeToExploreArea, GetClosestUnvisitedHouseArea),
+				new BehaviorSequence
+				({
+					new NotDecorator(ClearedAllLocatedHouses),
+					new TBehaviorAction<std::unordered_set<int>>(ChangeToExploreArea, GetClosestUnvisitedHouseArea),
+				}),
 
 				new BehaviorAction(ChangeToExplore)
 			}),

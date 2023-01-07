@@ -177,21 +177,21 @@ namespace BT_Conditions
 
 	bool IsDangerNear(Elite::Blackboard* pBlackboard)
 	{
-		auto pInfluenceMap{ GetInfluenceMap(pBlackboard) };
-		if (!pInfluenceMap)
+		auto pMemory{ GetMemory(pBlackboard) };
+		if (!pMemory)
 			return false;
 
-		auto pInterface{ GetInterface(pBlackboard) };
-		if (!pInterface)
+		auto pSurvivor{ GetSurvivor(pBlackboard) };
+		if (!pSurvivor)
 			return false;
 
 		//Get nodes around fov radius
-		const auto& nodes = pInfluenceMap->GetNodeIndicesInRadius(pInterface->Agent_GetInfo().Location, pInterface->Agent_GetInfo().FOV_Range);
+		const auto& nodes = pMemory->GetInfluenceMap()->GetNodeIndicesInRadius(pSurvivor->GetLocation(), pSurvivor->GetInfo().FOV_Range * 2);
 
 		const float errorMargin{ 5.0f };
 		for (const auto& node : nodes)
 		{
-			if (pInfluenceMap->GetNode(node)->GetInfluence() < -errorMargin)
+			if (pMemory->GetInfluenceMap()->GetNode(node)->GetInfluence() < -errorMargin)
 			{
 				return true;
 			}
@@ -241,53 +241,23 @@ namespace BT_Conditions
 		return pMemory->HasSeenItems();
 	}
 
-	bool WasBitten(Elite::Blackboard* pBlackboard)
+	bool HasSeenWeapon(Elite::Blackboard* pBlackboard)
 	{
-		const auto& pInterface{ GetInterface(pBlackboard) };
-		if (!pInterface)
+		const auto& pMemory{ GetMemory(pBlackboard) };
+		if (!pMemory)
 			return false;
 
-		if (pInterface->Agent_GetInfo().WasBitten)
-			std::cout << "Was bitten\n";
+		const auto& locatedItems{ pMemory->GetLocatedItems() };
+		for (const auto& item : locatedItems)
+		{
+			if (pMemory->GetInfluenceMap()->GetNode(item)->GetItem() == eItemType::PISTOL
+				|| pMemory->GetInfluenceMap()->GetNode(item)->GetItem() == eItemType::SHOTGUN)
+				return true;
+		}
 
-		return pInterface->Agent_GetInfo().WasBitten;
+		return false;
 	}
 
-	bool IsDefensiveState(Elite::Blackboard* pBlackboard)
-	{
-		const auto& pState{ GetSurvivorState(pBlackboard) };
-		if (!pState)
-			return false;
-
-		return *pState == SurvivorState::DEFENSIVE;
-	}
-
-	bool IsLootingState(Elite::Blackboard* pBlackboard)
-	{
-		const auto& pState{ GetSurvivorState(pBlackboard) };
-		if (!pState)
-			return false;
-
-		return *pState == SurvivorState::LOOTING;
-	}
-
-	bool IsExploringState(Elite::Blackboard* pBlackboard)
-	{
-		const auto& pState{ GetSurvivorState(pBlackboard) };
-		if (!pState)
-			return false;
-
-		return *pState == SurvivorState::EXPLORING;
-	}
-
-	bool IsAggroState(Elite::Blackboard* pBlackboard)
-	{
-		const auto& pState{ GetSurvivorState(pBlackboard) };
-		if (!pState)
-			return false;
-
-		return *pState == SurvivorState::AGGRO;
-	}
 
 	bool IsInventoryFull(Elite::Blackboard* pBlackboard)
 	{
@@ -316,7 +286,7 @@ namespace BT_Conditions
 
 		return pMemory->IsHouseCleared(*house);
 	}
-
+		
 	bool IsHealthLow(Elite::Blackboard* pBlackboard)
 	{
 		const auto& pInterface{ GetInterface(pBlackboard) };
@@ -347,6 +317,14 @@ namespace BT_Conditions
 	bool NeedsItem(Elite::Blackboard* pBlackboard)
 	{
 		const auto& pSurvivor{ GetSurvivor(pBlackboard) };
+		if (!pSurvivor)
+			return false;
+		const auto& pInventory{ GetInventory(pBlackboard) };
+		if (!pInventory)
+			return false;
+
+		if (!(pInventory->HasItem(eItemType::PISTOL) || pInventory->HasItem(eItemType::SHOTGUN)))
+			return true;
 
 		if (pSurvivor->GetInfo().Energy < pSurvivor->GetInfo().LowEnergyThreshold
 			|| pSurvivor->GetInfo().Health < pSurvivor->GetInfo().LowHealthThreshold)
@@ -381,5 +359,20 @@ namespace BT_Conditions
 		}
 
 		return false;
+	}
+
+	bool ClearedAllLocatedHouses(Elite::Blackboard* pBlackboard)
+	{
+		const auto& pMemory{ GetMemory(pBlackboard) };
+		if (!pMemory)
+			return false;
+
+		for (const auto& locatedHouse : pMemory->GetLocatedHouses())
+		{
+			if (!pMemory->IsHouseCleared(locatedHouse.second))
+				return false;
+		}
+
+		return true;
 	}
 }

@@ -71,6 +71,7 @@ namespace Elite
 
 		void GetNodesInRadiusRecursive(T_NodeType* node, std::unordered_set<int>& idxCache, float radius, const Vector2& center) const;
 		void GetNodesInSquareRecursive(T_NodeType* node, std::unordered_set<int>& idxCache, const Vector2& position, const Vector2& size) const;
+		void GetNodesInRadius(std::unordered_set<int>& idxCache, float radius, const Vector2& center) const;
 		friend class GraphRenderer;
 
 	};
@@ -317,6 +318,41 @@ namespace Elite
 	}
 
 	template<class T_NodeType, class T_ConnectionType>
+	void GridGraph<T_NodeType, T_ConnectionType>::GetNodesInRadius(std::unordered_set<int>& idxCache, float radius, const Vector2& center) const
+	{
+		// Create a queue to store the nodes that need to be processed
+		std::queue<int> nodesToProcess;
+
+		// Add the root node to the queue
+		nodesToProcess.push(GetNodeIdxAtWorldPos(center));
+
+		// Process the nodes in the queue
+		while (!nodesToProcess.empty())
+		{
+			// Get the next node from the queue
+			auto node = nodesToProcess.front();
+			nodesToProcess.pop();
+
+			// Check if the current node is within the specified radius of the center point
+			if (idxCache.count(node) == 0 && GetNode(node)->GetPosition().DistanceSquared(center) <= radius * radius)
+			{
+				// Add the current node to the cache
+				idxCache.insert(node);
+
+				// Add the child nodes to the queue
+				for (const auto& connection : GetConnections(node))
+				{
+					// Check if the child node has already been processed
+					if (idxCache.count(connection->GetTo()) == 0)
+					{
+						nodesToProcess.push(connection->GetTo());
+					}
+				}
+			}
+		}
+	}
+
+	template<class T_NodeType, class T_ConnectionType>
 	void GridGraph<T_NodeType, T_ConnectionType>::GetNodesInSquareRecursive(T_NodeType* node, std::unordered_set<int>& idxCache, const Vector2& position, const Vector2& size) const
 	{
 		// Calculate the half width and half height of the square
@@ -358,7 +394,7 @@ namespace Elite
 
 		const auto& centerNode{ GetNode(idx) };
 
-		GetNodesInRadiusRecursive(centerNode, idxCache, radius, pos);
+		GetNodesInRadius(idxCache, radius, pos);
 
 		return idxCache;
 	}

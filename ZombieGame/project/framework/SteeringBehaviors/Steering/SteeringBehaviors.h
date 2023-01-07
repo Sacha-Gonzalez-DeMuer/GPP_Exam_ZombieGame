@@ -149,8 +149,9 @@ public:
 	virtual ~Explore() = default;
 
 	SteeringPlugin_Output CalculateSteering(float deltaT, const IExamInterface* pInterface) override;
-
+	void SetReachedTarget(bool reached) { m_ReachedTarget = reached; };
 private:
+	float m_CenterRadiusDenominator{ 5.0f };
 	bool m_ReachedTarget{ true };
 };
 
@@ -169,6 +170,7 @@ public:
 	void AddToArea(std::unordered_set<int> toAdd) { m_AreaToExplore.insert(toAdd.begin(), toAdd.end()); };
 	std::unordered_set<int> GetArea() { return m_AreaToExplore; };
 	bool IsExplored() const { return m_AreaToExplore.empty(); };
+	void SetReachedTarget(bool reached) { m_ReachedTarget = reached; };
 protected:
 	std::unordered_set<int> m_AreaToExplore{};
 	bool m_ReachedTarget{ true };
@@ -239,6 +241,8 @@ public:
 
 	SteeringPlugin_Output CalculateSteering(float deltaT, const IExamInterface* pInterface) override;
 
+private:
+	float m_AngleError{ 1.0f };
 };
 
 
