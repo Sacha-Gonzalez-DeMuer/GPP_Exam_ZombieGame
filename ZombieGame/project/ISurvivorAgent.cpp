@@ -134,11 +134,10 @@ void ISurvivorAgent::InitializeBehaviorTree(IExamInterface* pInterface)
 				new BehaviorWhile(new BehaviorConditional(IsEnemyInFOV), new BehaviorAction(ChangeToNavigateInfluenceMap), true),
 				new BehaviorSelector //Fight/Flight Selector
 				({
-					//new BehaviorSequence
-					//({
-					//	new BehaviorAction(EquipWeapon),
-					//	new TBehaviorAction<Elite::Vector2>(ShootTarget, GetClosestEnemyInFOV),
-					//}),
+					new BehaviorSequence
+					({
+						new TBehaviorAction<Elite::Vector2>(ShootTarget, GetClosestEnemyInFOV),
+					}),
 
 
 					//new BehaviorAction(FleeToNearestHouse)
@@ -151,7 +150,7 @@ void ISurvivorAgent::InitializeBehaviorTree(IExamInterface* pInterface)
 				new BehaviorSequence
 				({
 					new BehaviorConditional(HasEmptyItem),
-					new BehaviorAction(DropEmptyItems)
+					new BehaviorAction(DropLeastValuableItem)
 				}),
 
 				new BehaviorSequence

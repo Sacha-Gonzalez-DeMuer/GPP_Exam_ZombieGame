@@ -4,18 +4,21 @@
 
 Inventory::Inventory(IExamInterface* pInterface, UINT inventorySize)
 	: m_pInventory{ new ItemInfo[inventorySize]{} }
-	, m_pInterface{pInterface}
-	, m_InventorySize{inventorySize}
+	, m_pInterface{ pInterface }
+	, m_InventorySize{ inventorySize }
 {
 }
 
-bool Inventory::HasItem(eItemType type)
+
+
+bool Inventory::EquipItem(eItemType type)
 {
-	ItemInfo item{};
+	ItemInfo item;
 	for (UINT i = 0; i < m_InventorySize; ++i)
 	{
 		if (GetItem(i, item) && item.Type == type)
 		{
+			m_CurrentSlot = i;
 			return true;
 		}
 	}
@@ -24,8 +27,25 @@ bool Inventory::HasItem(eItemType type)
 }
 
 
-float Inventory::CalculateItemValue(ItemInfo item)
+bool Inventory::HasItem(eItemType type)
 {
+	ItemInfo item{};
+	for (UINT i = 0; i < m_InventorySize; ++i)
+	{
+		if (m_pInventory[i].Type == type)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+float Inventory::CalculateItemValue(UINT slot)
+{
+	ItemInfo item{};
+	m_pInterface->Inventory_GetItem(slot, item);
+
 	//If item doesn't exist return
 	if (!IsValid(item))
 		return 0.0f;
@@ -36,26 +56,29 @@ float Inventory::CalculateItemValue(ItemInfo item)
 	const float maxEnergy{ 10.0f };
 
 	//Calculate value per item type
-	switch (item.Type) 
+	switch (item.Type)
 	{
-		case eItemType::MEDKIT:
-			value += maxHP / m_pInterface->Agent_GetInfo().Health;
-			break;
+	case eItemType::MEDKIT:
+		value += maxHP / m_pInterface->Agent_GetInfo().Health;
+		if (m_pInterface->Medkit_GetHealth(item) <= 0) value -= 1000;
+		break;
 
-		case eItemType::FOOD:
-			value += maxEnergy / m_pInterface->Agent_GetInfo().Energy;
-			break;
+	case eItemType::FOOD:
+		value += maxEnergy / m_pInterface->Agent_GetInfo().Energy;
+		if (m_pInterface->Medkit_GetHealth(item) <= 0) value -= 1000;
 
-		case eItemType::SHOTGUN:
-			if (!HasItem(eItemType::SHOTGUN) || !HasItem(eItemType::PISTOL))
-				value += 10;
-			value += m_pInterface->Weapon_GetAmmo(item) * 2;
-			break;
+		break;
 
-		case eItemType::PISTOL:
-			if (!HasItem(eItemType::SHOTGUN) || !HasItem(eItemType::PISTOL))
-				value += 10;
-			value += m_pInterface->Weapon_GetAmmo(item);
+	case eItemType::SHOTGUN:
+		if (!HasItem(eItemType::SHOTGUN) || !HasItem(eItemType::PISTOL))
+			value += 10;
+		value += m_pInterface->Weapon_GetAmmo(item) * 2;
+		break;
+
+	case eItemType::PISTOL:
+		if (!HasItem(eItemType::SHOTGUN) || !HasItem(eItemType::PISTOL))
+			value += 10;
+		value += m_pInterface->Weapon_GetAmmo(item);
 		break;
 	}
 
@@ -75,7 +98,7 @@ float Inventory::CalculateItemValue(ItemInfo item)
 				int invWeaponAmmo{ m_pInterface->Weapon_GetAmmo(inventoryItem) };
 				int itemAmmo{ m_pInterface->Weapon_GetAmmo(item) };
 				if (invWeaponAmmo > itemAmmo)
-					 value -= invWeaponAmmo;
+					value -= invWeaponAmmo;
 			}
 		}
 	}
@@ -89,7 +112,7 @@ UINT Inventory::GetLowestValueItem()
 	UINT lowestValueIdx{ 0 };
 	for (UINT i = 0; i < m_InventorySize; i++)
 	{
-		const float currentValue{ CalculateItemValue(m_pInventory[i]) };
+		const float currentValue{ CalculateItemValue(i) };
 		if (currentValue < lowestValue)
 		{
 			lowestValue = currentValue;
@@ -106,7 +129,7 @@ bool Inventory::GrabItem(EntityInfo entity)
 	if (!m_pInterface->Item_Grab(entity, item))
 		return false;
 
-	UINT freeSlot{m_CurrentSlot};
+	UINT freeSlot{ m_CurrentSlot };
 	for (UINT i = 0; i < m_InventorySize; ++i)
 	{
 		if (!m_pInterface->Inventory_GetItem(i, ItemInfo()))
@@ -121,7 +144,7 @@ bool Inventory::GrabItem(EntityInfo entity)
 	{
 		m_pInventory[freeSlot] = item;
 		++m_NrItems;
-			
+
 		return true;
 	}
 
@@ -157,32 +180,19 @@ bool Inventory::GrabItem(EntityInfo entity, ItemInfo& item)
 	return false;
 }
 
-
-
 bool Inventory::DropItem(UINT slot)
 {
 	if (m_pInterface->Inventory_RemoveItem(slot))
 	{
-		--m_NrItems;
 		m_pInventory[slot].Type = eItemType::INVALID;
 		return true;
 	}
 	return false;
 }
 
-bool Inventory::DropItem(eItemType type)
+bool Inventory::DropItem()
 {
-	if (type == eItemType::INVALID)
-		return false;
-
-	ItemInfo item{};
-	for (UINT i = 0; i < m_InventorySize; ++i)
-	{
-		if (GetItem(i, item) && item.Type == type)
-			return DropItem(i);
-	}
-
-	return false;
+	return DropItem(m_CurrentSlot);
 }
 
 bool Inventory::UseItem()
@@ -204,7 +214,12 @@ bool Inventory::UseItem(eItemType type)
 	for (UINT i = 0; i < m_InventorySize; ++i)
 	{
 		if (GetItem(i, item) && item.Type == type)
-			return UseItem(i);
+		{
+			if (UseItem(i))
+			{
+				return true;
+			}
+		}
 	}
 
 	return false;
@@ -230,12 +245,12 @@ bool Inventory::GetItem(UINT slot, ItemInfo& item)
 	return true;
 }
 
-bool Inventory::DropEmptyItem()
+bool Inventory::DropEmptyItems()
 {
 	ItemInfo item{};
 	for (UINT i = 0; i < m_InventorySize; ++i)
 	{
-		if (GetItem(i, item) && IsItemEmpty(item) && DropItem(i))
+		if (m_pInventory[i].Type == eItemType::EMPTY && DropItem(i))
 			return true;
 	}
 
@@ -244,39 +259,51 @@ bool Inventory::DropEmptyItem()
 
 
 
-bool Inventory::IsItemEmpty(ItemInfo item)
+bool Inventory::IsItemEmpty(UINT slot)
 {
+	int energy{  };
+	ItemInfo item{};
+	m_pInterface->Inventory_GetItem(slot, item);
+
 	switch (item.Type)
 	{
-		case eItemType::FOOD:
-			if (m_pInterface->Food_GetEnergy(item) <= 0)
-				return true;
-			break;
+	case eItemType::FOOD:
 
-		case eItemType::MEDKIT:
-			if (m_pInterface->Medkit_GetHealth(item) <= 0)
-				return true;
-			break;
+		energy = m_pInterface->Food_GetEnergy(item);
+		if (energy <= 0)
+			return true;
+
+		break;
+
+	case eItemType::MEDKIT:
+		energy = m_pInterface->Medkit_GetHealth(item);
+		if (energy <= 0)
+			return true;
+		break;
 	}
 
 
 	return false;
 }
 
-bool Inventory::IsItemEmpty(UINT slot)
-{
-	ItemInfo item{};
-	if (!GetItem(slot, item))
-		return false;
-
-	return IsItemEmpty(item);
-}
+//bool Inventory::IsItemEmpty(UINT slot)
+//{
+//	ItemInfo item{};
+//	if (!GetItem(slot, item))
+//		return false;
+//
+//	return IsItemEmpty(item);
+//}
 
 bool Inventory::HasEmptyItem()
 {
 	for (UINT i = 0; i < m_InventorySize; ++i)
 	{
-		return IsItemEmpty(m_pInventory[i]);
+		if (IsItemEmpty(i))
+		{
+			m_pInventory[i].Type = eItemType::EMPTY;
+			return true;
+		}
 	}
 
 	return false;

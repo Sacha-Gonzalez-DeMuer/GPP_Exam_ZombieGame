@@ -304,11 +304,6 @@ SteeringPlugin_Output NavigateInfluence::CalculateSteering(float deltaT, const I
 	const bool isDangerous{ m_pInfluenceMap->GetNodeAtWorldPos(agentInfo.Location)->GetInfluence() < 0.0f };
 	SetRunMode(isDangerous); //danger, run
 
-	// Look at danger
-	LookAt lookAt{}; 
-	lookAt.SetTarget(agentInfo.Location - agentInfo.LinearVelocity);
-	SteeringPlugin_Output lookAtSteering{};
-	lookAtSteering = lookAt.CalculateSteering(deltaT, pInterface);
 	
 	// Go to
 	Seek seek{};
@@ -320,6 +315,13 @@ SteeringPlugin_Output NavigateInfluence::CalculateSteering(float deltaT, const I
 
 	seek.SetTarget(m_Target.Position);
 	steering = seek.CalculateSteering(deltaT, pInterface);
+
+
+	// Look at danger
+	LookAt lookAt{};
+	lookAt.SetTarget(-agentInfo.LinearVelocity);
+	SteeringPlugin_Output lookAtSteering{};
+	lookAtSteering = lookAt.CalculateSteering(deltaT, pInterface);
 
 	steering.AngularVelocity += lookAtSteering.AngularVelocity;
 	steering.AutoOrient = !isDangerous;

@@ -61,7 +61,7 @@ void Plugin::InitGameDebugParams(GameDebugParams& params)
 	params.SpawnPurgeZonesOnMiddleClick = true;
 	params.PrintDebugMessages = true;
 	params.ShowDebugItemNames = true;
-	params.Seed = 4001;
+	params.Seed = 2;
 }
 
 void Plugin::Update(float dt)

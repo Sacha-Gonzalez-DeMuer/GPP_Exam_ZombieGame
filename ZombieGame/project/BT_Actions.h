@@ -457,8 +457,8 @@ namespace BT_Actions
 		if (!pInventory)
 			return FAILURE;
 
-		if (pInventory->DropItem(eItemType::GARBAGE))
-			return SUCCESS;
+		//if (pInventory->DropItem(eItemType::GARBAGE))
+		//	return SUCCESS;
 
 		return FAILURE;
 	}
@@ -482,8 +482,10 @@ namespace BT_Actions
 		if (!pInventory)
 			return FAILURE;
 
-		if (pInventory->DropEmptyItem())
+		//Drop item with least value
+		if (pInventory->DropItem(pInventory->GetLowestValueItem()))
 			return SUCCESS;
+
 
 		return FAILURE;
 	}
@@ -501,22 +503,17 @@ namespace BT_Actions
 		if (!pInventory)
 			return FAILURE;
 
-		const float errorMargin{ 1.0f };
-		Elite::Vector2 toTarget{ (target - pSurvivor->GetLocation()) };
-		const float angleBetween{ Elite::AngleBetween(pSurvivor->GetDirection(), toTarget) };
-
+		const float errorMargin{ 5.0f };
 		pSurvivor->SetToLookAt(target);
-		if (abs(Elite::ToDegrees(angleBetween)) > errorMargin)
-		{
+		if (Elite::ToDegrees(Elite::AngleBetween(pSurvivor->GetDirection(), target - pSurvivor->GetLocation())) > errorMargin)
 			return RUNNING;
+
+
+		if (pInventory->EquipItem(eItemType::SHOTGUN) || pInventory->EquipItem(eItemType::PISTOL))
+		{
+			pInventory->UseItem();
+			return SUCCESS;
 		}
-
-
-		if (pInventory->UseItem(eItemType::SHOTGUN))
-			return SUCCESS;
-
-		if (pInventory->UseItem(eItemType::PISTOL))
-			return SUCCESS;
 
 		return FAILURE;
 	}

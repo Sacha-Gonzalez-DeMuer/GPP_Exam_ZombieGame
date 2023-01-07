@@ -75,7 +75,8 @@ enum class eItemType
 	//@END
 	_LAST = GARBAGE,
 
-	INVALID = -1
+	INVALID = -1,
+	EMPTY
 };
 
 enum class eEnemyType
