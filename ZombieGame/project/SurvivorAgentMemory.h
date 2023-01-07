@@ -7,12 +7,6 @@
 
 class IExamInterface;
 
-struct intBool
-{
-	int i;
-	bool b;
-};
-
 class SurvivorAgentMemory final
 {
 	using InfluenceGrid = Elite::GridGraph<Elite::WorldNode, Elite::GraphConnection>;
@@ -27,18 +21,15 @@ public:
 	void RenderInfluenceMap(IExamInterface* pInterface) const;
 
 	bool HasSeenItems() const { return !m_LocatedItems.empty(); };
-	bool HasVisitedHouse(const HouseInfo& house) const;
 
 	Elite::InfluenceMap<InfluenceGrid>* GetInfluenceMap() const { return m_pInfluenceMap; };
 	std::unordered_set<int> GetLocatedItems() const { return m_LocatedItems; };
-	std::vector<EHouseInfo> GetSeenHouses() const { return m_SeenHouses; };
-	std::vector<EHouseInfo> GetClearedHouses() const { return m_ClearedHouses; };
+	std::unordered_map<int, EHouseInfo> GetLocatedHouses() const { return m_LocatedHouses; };
 	std::unordered_set<int> GetHouseArea(const HouseInfo& house);
 	bool OnPickUpItem(const ItemInfo& item);
 	bool OnPickUpItem(const EntityInfo& entity);
 	 
-	void AddToSeenHouses( HouseInfo houseInfo);
-	void AddToVisitedHouses( HouseInfo houseInfo);
+	void LocateHouse( HouseInfo houseInfo);
 	bool IsHouseCleared(const HouseInfo& houseInfo);
 	bool IsHouseCleared(const HouseInfo& houseInfo, std::unordered_set<int>& area);
 	bool IsHouseCleared(std::unordered_set<int>& unscannedArea, const HouseInfo& houseInfo);
@@ -59,7 +50,7 @@ private:
 
 	int m_NrSeenHouses{};
 
-	//std::unordered_map<intBool, EHouseInfo> m_LocatedHouses{};
+	std::unordered_map<int, EHouseInfo> m_LocatedHouses{};
 
 	std::vector<EHouseInfo> m_SeenHouses{};
 	std::vector<EHouseInfo> m_ClearedHouses{};

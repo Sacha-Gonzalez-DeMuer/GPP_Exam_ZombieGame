@@ -10,11 +10,10 @@ public:
 	Inventory(IExamInterface* pInterface, UINT inventorySize = 5);
 
 	//Inventory management methods
-	bool GrabItem(const ItemInfo& item);
 	bool GrabItem(EntityInfo entity);
 	bool GrabItem(EntityInfo entity, ItemInfo& item);
 	bool DropItem(UINT slot);
-	bool DropItem();
+	bool DropItem(eItemType type);
 	void DeleteItem(UINT slot);
 	bool GetItem(UINT slot, ItemInfo& item);
 	bool DropEmptyItem();
@@ -23,7 +22,6 @@ public:
 	bool UseItem(); //uses current slot
 	bool UseItem(UINT slot);
 	bool UseItem(eItemType type);
-	bool EquipItem(eItemType type);
 
 	//Checks
 	bool IsItemEmpty(UINT slot);
@@ -31,7 +29,7 @@ public:
 	bool HasEmptyItem();
 	bool HasItem(eItemType type);
 	bool IsFull() const { return m_NrItems >= m_InventorySize; };
-	bool IsValid(const ItemInfo& item) const { return item.ItemHash != 0; };
+	bool IsValid(const ItemInfo& item) const { return item.Type == eItemType::INVALID; }
 
 	//Utils
 	float CalculateItemValue(ItemInfo item);

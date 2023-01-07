@@ -9,24 +9,6 @@ Inventory::Inventory(IExamInterface* pInterface, UINT inventorySize)
 {
 }
 
-
-
-bool Inventory::EquipItem(eItemType type)
-{
-	ItemInfo item;
-	for (UINT i = 0; i < m_InventorySize; ++i)
-	{
-		if (GetItem(i, item) && item.Type == type)
-		{
-			m_CurrentSlot = i;
-			return true;
-		}
-	}
-
-	return false;
-}
-
-
 bool Inventory::HasItem(eItemType type)
 {
 	ItemInfo item{};
@@ -40,6 +22,7 @@ bool Inventory::HasItem(eItemType type)
 
 	return false;
 }
+
 
 float Inventory::CalculateItemValue(ItemInfo item)
 {
@@ -186,9 +169,20 @@ bool Inventory::DropItem(UINT slot)
 	}
 	return false;
 }
-bool Inventory::DropItem()
+
+bool Inventory::DropItem(eItemType type)
 {
-	return DropItem(m_CurrentSlot);
+	if (type == eItemType::INVALID)
+		return false;
+
+	ItemInfo item{};
+	for (UINT i = 0; i < m_InventorySize; ++i)
+	{
+		if (GetItem(i, item) && item.Type == type)
+			return DropItem(i);
+	}
+
+	return false;
 }
 
 bool Inventory::UseItem()
@@ -210,12 +204,7 @@ bool Inventory::UseItem(eItemType type)
 	for (UINT i = 0; i < m_InventorySize; ++i)
 	{
 		if (GetItem(i, item) && item.Type == type)
-		{
-			if (UseItem(i))
-			{
-				return true;
-			}
-		}
+			return UseItem(i);
 	}
 
 	return false;
@@ -285,13 +274,9 @@ bool Inventory::IsItemEmpty(UINT slot)
 
 bool Inventory::HasEmptyItem()
 {
-	ItemInfo item{};
 	for (UINT i = 0; i < m_InventorySize; ++i)
 	{
-		if (GetItem(i, item))
-		{
-			return IsItemEmpty(item);
-		}
+		return IsItemEmpty(m_pInventory[i]);
 	}
 
 	return false;

@@ -16,6 +16,7 @@ struct EAgentInfo : AgentInfo
 
 struct EHouseInfo : HouseInfo
 {
+	EHouseInfo() : HouseInfo() {}
 	EHouseInfo(const HouseInfo& info) : HouseInfo(info){}
 
 	bool Cleared{false};

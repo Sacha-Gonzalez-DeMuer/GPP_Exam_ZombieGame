@@ -132,21 +132,18 @@ void ISurvivorAgent::InitializeBehaviorTree(IExamInterface* pInterface)
 			({
 				new BehaviorConditional(IsDangerNear),
 				new BehaviorWhile(new BehaviorConditional(IsEnemyInFOV), new BehaviorAction(ChangeToNavigateInfluenceMap), true),
-				new BehaviorAction(SetClosestEnemyAsTarget),
-
 				new BehaviorSelector //Fight/Flight Selector
 				({
-					new BehaviorSequence
-					({
-						new BehaviorAction(EquipWeapon),
-						new TBehaviorAction<Elite::Vector2>(ShootTarget, GetClosestEnemyInFOV),
-					}),
+					//new BehaviorSequence
+					//({
+					//	new BehaviorAction(EquipWeapon),
+					//	new TBehaviorAction<Elite::Vector2>(ShootTarget, GetClosestEnemyInFOV),
+					//}),
 
 
 					//new BehaviorAction(FleeToNearestHouse)
 				})
 			}),
-		 //
 
 			//============= INVENTORY MANAGEMENT SELECTOR =============//
 			new BehaviorSelector
@@ -220,11 +217,7 @@ void ISurvivorAgent::InitializeBehaviorTree(IExamInterface* pInterface)
 			//============= EXPLORATION SELECTOR =============//
 			new BehaviorSelector
 			({
-				new BehaviorSequence //Visit unvisited houses
-				({
-					new BehaviorConditional(HasVisitedAllSeenHouses, true),
-					new TBehaviorAction<std::unordered_set<int>>(ChangeToExploreArea, GetClosestUnvisitedHouseArea)
-				}),
+				new TBehaviorAction<std::unordered_set<int>>(ChangeToExploreArea, GetClosestUnvisitedHouseArea),
 
 				new BehaviorAction(ChangeToExplore)
 			}),

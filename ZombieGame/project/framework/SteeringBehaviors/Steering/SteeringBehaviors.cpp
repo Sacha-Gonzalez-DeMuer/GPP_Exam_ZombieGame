@@ -131,7 +131,6 @@ SteeringPlugin_Output LookAround::CalculateSteering(float deltaT, const IExamInt
 
 SteeringPlugin_Output LookAt::CalculateSteering(float deltaT, const IExamInterface* pInterface)
 {
-	std::cout << "Looking at\n";
 	SteeringPlugin_Output steering = {};
 	steering.AutoOrient = false;
 
@@ -140,9 +139,13 @@ SteeringPlugin_Output LookAt::CalculateSteering(float deltaT, const IExamInterfa
 
 	const float targetAngle = atan2f(dir_vector.y, dir_vector.x);
 	const float agentAngle = pInterface->Agent_GetInfo().Orientation;
-	const float deltaAngle = targetAngle - agentAngle;
+	float deltaAngle = targetAngle - agentAngle;
 
-	if (abs(targetAngle - agentAngle) <= .02f)
+	// Make sure deltaAngle is between -pi and pi
+	while (deltaAngle > M_PI) deltaAngle -= 2 * M_PI;
+	while (deltaAngle < -M_PI) deltaAngle += 2 * M_PI;
+
+	if (abs(deltaAngle) <= .02f)
 	{
 		return steering;
 	}
@@ -150,15 +153,7 @@ SteeringPlugin_Output LookAt::CalculateSteering(float deltaT, const IExamInterfa
 	steering.AngularVelocity = pInterface->Agent_GetInfo().MaxAngularSpeed;
 
 	// Check the shortest rotation direction
-	if (deltaAngle < -M_PI)
-	{
-		steering.AngularVelocity = -steering.AngularVelocity;
-	}
-	else if (deltaAngle > M_PI)
-	{
-		steering.AngularVelocity = -steering.AngularVelocity;
-	}
-	else if (deltaAngle < 0)
+	if (abs(deltaAngle) > M_PI / 2)
 	{
 		steering.AngularVelocity = -steering.AngularVelocity;
 	}
@@ -169,6 +164,8 @@ SteeringPlugin_Output LookAt::CalculateSteering(float deltaT, const IExamInterfa
 
 SteeringPlugin_Output Explore::CalculateSteering(float deltaT, const IExamInterface* pInterface)
 {
+	std::cout << "Exploring \n";
+
 	SteeringPlugin_Output steering{};
 	const WorldInfo worldInfo{ pInterface->World_GetInfo() };
 	const AgentInfo& agentInfo{ pInterface->Agent_GetInfo() };
@@ -225,6 +222,7 @@ SteeringPlugin_Output Explore::CalculateSteering(float deltaT, const IExamInterf
 
 SteeringPlugin_Output ExploreArea::CalculateSteering(float deltaT, const IExamInterface* pInterface)
 {
+	std::cout << "Exploring Area\n";
 	SteeringPlugin_Output steering{};
 	const WorldInfo worldInfo{ pInterface->World_GetInfo() };
 	const AgentInfo& agentInfo{ pInterface->Agent_GetInfo() };
@@ -288,7 +286,6 @@ SteeringPlugin_Output NavigateInfluence::CalculateSteering(float deltaT, const I
 	//find node with best influence
 	for (const auto& node : nodes)
 	{
-		std::cout << "Node influence; " << node->GetInfluence() << "\n";
 		if (node->GetInfluence() > highestInfluence)
 		{
 			highestInfluence = node->GetInfluence();
@@ -304,17 +301,18 @@ SteeringPlugin_Output NavigateInfluence::CalculateSteering(float deltaT, const I
 	}
 
 	//const auto& lowestInfluenceNode{ m_pInfluenceMap->GetNode(lowestIdx) };
-	const bool isDangerous{ m_pInfluenceMap->GetNodeAtWorldPos(agentInfo.Location)->GetInfluence() < -1.0f };
+	const bool isDangerous{ m_pInfluenceMap->GetNodeAtWorldPos(agentInfo.Location)->GetInfluence() < 0.0f };
 	SetRunMode(isDangerous); //danger, run
 
 	// Look at danger
 	LookAt lookAt{}; 
-	lookAt.SetTarget(-agentInfo.LinearVelocity);
+	lookAt.SetTarget(agentInfo.Location - agentInfo.LinearVelocity);
 	SteeringPlugin_Output lookAtSteering{};
 	lookAtSteering = lookAt.CalculateSteering(deltaT, pInterface);
 	
 	// Go to
 	Seek seek{};
+	seek.SetAutoOrient(false);
 	if (m_Target.Position.DistanceSquared(agentInfo.Location) < agentInfo.GrabRange * agentInfo.GrabRange)
 	{
 		m_Target.Position = m_pInfluenceMap->GetNode(highestIdx)->GetPosition();

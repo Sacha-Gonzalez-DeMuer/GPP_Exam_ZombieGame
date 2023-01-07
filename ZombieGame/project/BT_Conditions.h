@@ -304,7 +304,7 @@ namespace BT_Conditions
 		if (!pMemory)
 			return false;
 
-		return !pMemory->GetSeenHouses().empty();
+		return !pMemory->GetLocatedHouses().empty();
 	}
 
 	bool IsHouseCleared(Elite::Blackboard* pBlackboard, HouseInfo* house)
@@ -317,21 +317,6 @@ namespace BT_Conditions
 		return pMemory->IsHouseCleared(*house);
 	}
 
-	bool HasVisitedAllSeenHouses(Elite::Blackboard* pBlackboard)
-	{
-		const auto& pMemory{ GetMemory(pBlackboard) };
-		if (!pMemory)
-			return false;
-
-		if (pMemory->GetSeenHouses().empty() && !pMemory->GetClearedHouses().empty())
-		{
-			std::cout << "Cleared all seen houses :)\n";
-			return true;
-		}
-
-		return false;
-	}
-
 	bool IsHealthLow(Elite::Blackboard* pBlackboard)
 	{
 		const auto& pInterface{ GetInterface(pBlackboard) };
@@ -340,7 +325,6 @@ namespace BT_Conditions
 
 		return pInterface->Agent_GetInfo().Health < 8.0f;
 	}
-
 
 	bool IsEnergyLow(Elite::Blackboard* pBlackboard)
 	{
@@ -366,12 +350,7 @@ namespace BT_Conditions
 
 		if (pSurvivor->GetInfo().Energy < pSurvivor->GetInfo().LowEnergyThreshold
 			|| pSurvivor->GetInfo().Health < pSurvivor->GetInfo().LowHealthThreshold)
-		{
-
-			std::cout << "Needs item!\n";
 			return true;
-		}
-
 
 		return false;
 	}

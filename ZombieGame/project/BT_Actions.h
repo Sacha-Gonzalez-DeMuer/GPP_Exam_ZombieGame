@@ -119,18 +119,6 @@ namespace BT_Actions
 		return SUCCESS;
 	}
 
-	Elite::BehaviorState EquipWeapon(Elite::Blackboard* pBlackboard)
-	{
-		auto pInventory{ GetInventory(pBlackboard) };
-		if (!pInventory)
-			return FAILURE;
-
-		if (pInventory->EquipItem(eItemType::SHOTGUN) || pInventory->EquipItem(eItemType::PISTOL))
-			return SUCCESS;
-
-		return FAILURE;
-	}
-
 	Elite::BehaviorState ChangeToLookAt(Elite::Blackboard* pBlackboard)
 	{
 		auto pSurvivor{ GetSurvivor(pBlackboard) };
@@ -259,17 +247,17 @@ namespace BT_Actions
 		if (!pInterface)
 			return INVALID_VECTOR2;
 
-		auto seenHouses{ pMemory->GetSeenHouses() };
+		auto locatedHouses{ pMemory->GetLocatedHouses() };
 
-		if (seenHouses.empty() || seenHouses.size() <= pMemory->GetClearedHouses().size())
+		if (locatedHouses.empty())
 			return INVALID_VECTOR2;
 
 		Elite::Vector2 closestPos{ FLT_MAX, FLT_MAX };
 		const Elite::Vector2 agentPos{ pInterface->Agent_GetInfo().Location };
-		for (auto& house : seenHouses)
+		for (auto& house : locatedHouses)
 		{
-			if (house.Center.Distance(agentPos) < closestPos.Distance(agentPos))
-				closestPos = house.Center;
+			if (house.second.Center.Distance(agentPos) < closestPos.Distance(agentPos))
+				closestPos = house.second.Center;
 		}
 
 		return closestPos;
@@ -284,17 +272,19 @@ namespace BT_Actions
 		auto pInterface{ GetInterface(pBlackboard) };
 		if (!pInterface)
 			return INVALID_VECTOR2;
-		auto seenHouses{ pMemory->GetSeenHouses() };
-		if (seenHouses.empty() || seenHouses.size() <= pMemory->GetClearedHouses().size())
+
+		auto locatedHouses{ pMemory->GetLocatedHouses() };
+		if (locatedHouses.empty())
 			return INVALID_VECTOR2;
 
+	
 		//Determine closest unvisited house location
 		Elite::Vector2 closestPos{ INVALID_VECTOR2 };
 		const Elite::Vector2 agentPos{ pInterface->Agent_GetInfo().Location };
-		for (auto& house : seenHouses)
+		for (auto& house : locatedHouses)
 		{
-			if (!pMemory->HasVisitedHouse(house) && house.Center.Distance(agentPos) < closestPos.Distance(agentPos))
-				closestPos = house.Center;
+			if (!pMemory->IsHouseCleared(house.second) && house.second.Center.Distance(agentPos) < closestPos.Distance(agentPos))
+				closestPos = house.second.Center;
 		}
 
 		return closestPos;
@@ -310,7 +300,7 @@ namespace BT_Actions
 		if (!pSurvivor)
 			return {};
 
-		auto seenHouses{ pMemory->GetSeenHouses() };
+		auto seenHouses{ pMemory->GetLocatedHouses() };
 		if (seenHouses.empty())
 			return {};
 
@@ -321,12 +311,12 @@ namespace BT_Actions
 		for (auto& house : seenHouses)
 		{
 			if (!closestHouse)
-				closestHouse = &house;
+				closestHouse = &house.second;
 
-			if (!pMemory->IsHouseCleared(house, area)
-				&& house.Center.DistanceSquared(pSurvivor->GetLocation()) < closestHouse->Center.DistanceSquared(pSurvivor->GetLocation()))
+			if (!pMemory->IsHouseCleared(house.second, area)
+				&& house.second.Center.DistanceSquared(pSurvivor->GetLocation()) < closestHouse->Center.DistanceSquared(pSurvivor->GetLocation()))
 			{
-				closestHouse = &house;
+				closestHouse = &house.second;
 			}
 		}
 
@@ -441,6 +431,7 @@ namespace BT_Actions
 		auto pInventory{ GetInventory(pBlackboard) };
 		if (!pInventory)
 			return FAILURE;
+		std::cout << "healing\n";
 
 		if (pInventory->UseItem(eItemType::MEDKIT))
 			return SUCCESS;
@@ -453,7 +444,7 @@ namespace BT_Actions
 		auto pInventory{ GetInventory(pBlackboard) };
 		if (!pInventory)
 			return FAILURE;
-
+		std::cout << "eating\n";
 		if (pInventory->UseItem(eItemType::FOOD))
 			return SUCCESS;
 
@@ -466,7 +457,7 @@ namespace BT_Actions
 		if (!pInventory)
 			return FAILURE;
 
-		if (pInventory->EquipItem(eItemType::GARBAGE) && pInventory->DropItem())
+		if (pInventory->DropItem(eItemType::GARBAGE))
 			return SUCCESS;
 
 		return FAILURE;
@@ -520,10 +511,11 @@ namespace BT_Actions
 			return RUNNING;
 		}
 
-		if (pInventory->EquipItem(eItemType::SHOTGUN) && pInventory->UseItem())
+
+		if (pInventory->UseItem(eItemType::SHOTGUN))
 			return SUCCESS;
 
-		if (pInventory->EquipItem(eItemType::PISTOL) && pInventory->UseItem())
+		if (pInventory->UseItem(eItemType::PISTOL))
 			return SUCCESS;
 
 		return FAILURE;
@@ -669,21 +661,14 @@ namespace BT_Actions
 
 
 		Elite::Vector2 closestHousePos{ INVALID_VECTOR2 };
-		for (auto house : pMemory->GetSeenHouses())
+		for (auto house : pMemory->GetLocatedHouses())
 		{
-			if (house.Center.DistanceSquared(pSurvivor->GetLocation()) < closestHousePos.DistanceSquared(pSurvivor->GetLocation()))
+			if (house.second.Center.DistanceSquared(pSurvivor->GetLocation()) < closestHousePos.DistanceSquared(pSurvivor->GetLocation()))
 			{
-				closestHousePos = house.Center;
+				closestHousePos = house.second.Center;
 			}
 		}
 
-		for (auto house : pMemory->GetClearedHouses())
-		{
-			if (house.Center.DistanceSquared(pSurvivor->GetLocation()) < closestHousePos.DistanceSquared(pSurvivor->GetLocation()))
-			{
-				closestHousePos = house.Center;
-			}
-		}
 
 		if (closestHousePos == INVALID_VECTOR2)
 			return FAILURE;
