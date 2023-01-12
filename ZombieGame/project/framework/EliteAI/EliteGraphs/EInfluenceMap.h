@@ -32,7 +32,6 @@ namespace Elite
 		float GetPropagationInterval() const { return m_PropagationInterval; }
 		void SetPropagationInterval(float propagationInterval) { m_PropagationInterval = propagationInterval; }
 
-		void UpdateDecay(float deltaTime);
 	protected:
 		virtual void OnGraphModified(bool nrOfNodesChanged, bool nrOfConnectionsChanged) override;
 
@@ -206,15 +205,6 @@ namespace Elite
 		}
 	}
 
-	template<class T_GraphType>
-	inline void InfluenceMap<T_GraphType>::UpdateDecay(float deltaTime)
-	{
-		for (auto& node : m_Nodes)
-		{
-			if (node->GetInfluence() < 0)
-				node->UpdateDecay(deltaTime);
-		}
-	}
 
 	template<class T_GraphType>
 	inline void InfluenceMap<T_GraphType>::OnGraphModified(bool nrOfNodesChanged, bool nrOfConnectionsChanged)

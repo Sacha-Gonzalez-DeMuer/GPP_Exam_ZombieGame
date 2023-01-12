@@ -31,9 +31,6 @@
     <ClCompile Include="Inventory.cpp">
       <Filter>MyClasses\Agent</Filter>
     </ClCompile>
-    <ClCompile Include="Memory.cpp">
-      <Filter>MyClasses\Agent\Memory</Filter>
-    </ClCompile>
     <ClCompile Include="SurvivorAgentMemory.cpp">
       <Filter>MyClasses\Agent\Memory</Filter>
     </ClCompile>
@@ -42,9 +39,6 @@
     </ClCompile>
     <ClCompile Include="framework\Agent\SteeringAgent.cpp">
       <Filter>MyClasses\Agent\Steering</Filter>
-    </ClCompile>
-    <ClCompile Include="framework\SteeringBehaviors\Steering\CombinedSteeringBehaviors.cpp">
-      <Filter>Customized\Steering</Filter>
     </ClCompile>
     <ClCompile Include="EBehaviorTree.cpp">
       <Filter>Customized\Behavior</Filter>
@@ -174,9 +168,6 @@
     <ClInclude Include="Inventory.h">
       <Filter>MyClasses\Agent</Filter>
     </ClInclude>
-    <ClInclude Include="Memory.h">
-      <Filter>MyClasses\Agent\Memory</Filter>
-    </ClInclude>
     <ClInclude Include="SurvivorAgentMemory.h">
       <Filter>MyClasses\Agent\Memory</Filter>
     </ClInclude>
@@ -186,16 +177,10 @@
     <ClInclude Include="framework\Agent\SteeringAgent.h">
       <Filter>MyClasses\Agent\Steering</Filter>
     </ClInclude>
-    <ClInclude Include="framework\SteeringBehaviors\Steering\CombinedSteeringBehaviors.h">
-      <Filter>Customized\Steering</Filter>
-    </ClInclude>
     <ClInclude Include="EBehaviorTree.h">
       <Filter>Customized\Behavior</Filter>
     </ClInclude>
     <ClInclude Include="framework\EliteAI\EliteGraphs\EInfluenceMap.h">
-      <Filter>Customized\Behavior</Filter>
-    </ClInclude>
-    <ClInclude Include="framework\EliteDecisionMaking\EInfluenceMap.h">
       <Filter>Customized\Behavior</Filter>
     </ClInclude>
     <ClInclude Include="framework\EliteAI\EliteGraphs\EGraphNodeTypes.h">
@@ -206,6 +191,9 @@
     </ClInclude>
     <ClInclude Include="framework\EliteAI\EliteGraphs\EGridGraph.h">
       <Filter>Customized\Graphs</Filter>
+    </ClInclude>
+    <ClInclude Include="BT_ObjectGetters.h">
+      <Filter>MyClasses\Behavior</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -232,9 +220,6 @@
     </Filter>
     <Filter Include="MyClasses\Agent\Steering">
       <UniqueIdentifier>{57d93111-fbb2-4017-b4ec-4e6ac1be96bf}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Customized\Steering">
-      <UniqueIdentifier>{54cb417e-ecc9-4f46-8347-f4add1509d20}</UniqueIdentifier>
     </Filter>
     <Filter Include="Customized\Behavior">
       <UniqueIdentifier>{a3382f86-a651-45b2-9c06-b675fa69938f}</UniqueIdentifier>

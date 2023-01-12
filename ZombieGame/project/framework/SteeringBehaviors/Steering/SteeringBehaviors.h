@@ -29,7 +29,6 @@ public:
 
 	virtual SteeringPlugin_Output CalculateSteering(float deltaT, const IExamInterface* pInterface) = 0;
 
-	//Seek Functions
 	void SetTarget(const TargetData& target) { m_Target = target; }
 	void SetRadius(const float radius) { m_Radius = radius; };
 	void SetAutoOrient(bool enabled) { m_AutoOrient = enabled; };
@@ -57,34 +56,6 @@ public:
 	virtual ~Seek() = default;
 
 	//Seek Behaviour
-	SteeringPlugin_Output CalculateSteering(float deltaT, const IExamInterface* pAgent) override;
-};
-
-
-
-///////////////////////////////////////
-//FLEE
-//****
-class Flee : public ISteeringBehavior
-{
-public:
-	Flee() = default;
-	virtual ~Flee() = default;
-
-	SteeringPlugin_Output CalculateSteering(float deltaT, const IExamInterface* pAgent) override;
-};
-
-
-
-///////////////////////////////////////
-//ARRIVE
-//****
-class Arrive : public ISteeringBehavior
-{
-public:
-	Arrive() = default;
-	virtual ~Arrive() = default;
-
 	SteeringPlugin_Output CalculateSteering(float deltaT, const IExamInterface* pAgent) override;
 };
 
@@ -137,49 +108,49 @@ public:
 
 };
 
-
-///////////////////////////////////////
-//EXPLORE
-//****
-class SurvivorAgentMemory;
-class Explore : public InfluenceNavigation {
-	
-public:
-	Explore() = default;
-	virtual ~Explore() = default;
-
-	SteeringPlugin_Output CalculateSteering(float deltaT, const IExamInterface* pInterface) override;
-	void SetReachedTarget(bool reached) { m_ReachedTarget = reached; };
-private:
-	float m_CenterRadiusDenominator{ 5.0f };
-	bool m_ReachedTarget{ true };
-};
-
-
 ///////////////////////////////////////
 //EXPLORE AREA
 //****
-class ExploreArea : public InfluenceNavigation {
+class ClearArea final : public InfluenceNavigation {
 
 public:
-	ExploreArea() = default;
-	virtual ~ExploreArea() = default;
+	ClearArea() = default;
+	virtual ~ClearArea() = default;
 
 	SteeringPlugin_Output CalculateSteering(float deltaT, const IExamInterface* pInterface) override;
-	void SetArea(std::unordered_set<int> area) { m_AreaToExplore = area; };
-	void AddToArea(std::unordered_set<int> toAdd) { m_AreaToExplore.insert(toAdd.begin(), toAdd.end()); };
-	std::unordered_set<int> GetArea() { return m_AreaToExplore; };
-	bool IsExplored() const { return m_AreaToExplore.empty(); };
+	void SetArea(std::unordered_set<int> area) { m_AreaToClear = area; };
+	void AddToArea(std::unordered_set<int> toAdd) { m_AreaToClear.insert(toAdd.begin(), toAdd.end()); };
+	std::unordered_set<int> GetArea() { return m_AreaToClear; };
+	bool IsExplored() const { return m_AreaToClear.empty(); };
 	void SetReachedTarget(bool reached) { m_ReachedTarget = reached; };
 protected:
-	std::unordered_set<int> m_AreaToExplore{};
+	std::unordered_set<int> m_AreaToClear{};
 	bool m_ReachedTarget{ true };
+};
+
+class CircularPatrol final : public Wander
+{
+public:
+	CircularPatrol() = default;
+	virtual ~CircularPatrol() = default;
+	SteeringPlugin_Output CalculateSteering(float deltaT, const IExamInterface* pInterface) override;
+
+	void InitializeCircularPath(const Elite::Vector2& center, float radius, int nrPoints, float extensionLength);
+	std::vector<Elite::Vector2> GetPath() const { return m_PatrolPoints; };
+	void SetRadius(float radius) { m_PatrolRadius = radius; };
+	void SetCenter(const Elite::Vector2& center) { m_Center = center; };
+protected:
+	std::vector<Elite::Vector2> m_PatrolPoints{};
+	Elite::Vector2 m_Center;
+	int m_PatrolIdx{ 0 };
+	float m_PatrolRadius{ 100.f };
+	float m_ExtensionLength{ 10.f };
 };
 
 ///////////////////////////////////////
 //NAVIGATE INFLUENCE
 //****
-class NavigateInfluence : public InfluenceNavigation
+class NavigateInfluence final : public InfluenceNavigation
 {
 public:
 	NavigateInfluence() = default;
@@ -191,36 +162,11 @@ public:
 //==============================================\\
 		//===========================\\
 
-///////////////////////////////////////
-//EVADE
-//****
-class Evade : public ISteeringBehavior {
-public:
-	Evade() = default;
-	virtual ~Evade() = default;
-
-	SteeringPlugin_Output CalculateSteering(float deltaT, const IExamInterface* pInterface) override;
-};
-
-
-///////////////////////////////////////
-//PURSUIT
-//****
-class Pursuit : public Seek {
-public:
-	Pursuit() = default;
-	virtual ~Pursuit() = default;
-
-	SteeringPlugin_Output CalculateSteering(float deltaT, const IExamInterface* pInterface) override;
-
-	float m_ForesightDepth{ 5.f };
-};
-
 
 ////////////////////////////////////////
 //LOOK AROUND
 //****
-class LookAround : public ISteeringBehavior {
+class LookAround final : public ISteeringBehavior {
 public:
 	LookAround() = default;
 	virtual ~LookAround() = default;

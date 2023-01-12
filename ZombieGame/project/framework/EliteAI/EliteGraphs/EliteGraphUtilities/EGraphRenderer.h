@@ -37,6 +37,9 @@ namespace Elite
 		template<class T_NodeType>
 		void RenderRectNode(IBaseInterface* pInterface, T_NodeType* pNode, std::string text = "", float width = DEFAULT_NODE_RADIUS, float depth = 0.0f) const
 		{
+			if (!pNode)
+				return;
+
 			const Vector2 verts[4]
 			{
 				Vector2(pNode->GetPosition().x - width / 2.0f, pNode->GetPosition().y - width / 2.0f),
@@ -44,6 +47,7 @@ namespace Elite
 				Vector2(pNode->GetPosition().x + width / 2.0f, pNode->GetPosition().y + width / 2.0f),
 				Vector2(pNode->GetPosition().x + width / 2.0f, pNode->GetPosition().y - width / 2.0f)
 			};
+
 
 			WorldNode* worldNode{ static_cast<WorldNode*>(pNode) };
 			if (worldNode && pNode->GetScanned())

@@ -105,29 +105,6 @@ namespace BT_Conditions
 		return angleBetween < errorMargin;
 	}
 
-	bool AlignedWithTarget(Elite::Blackboard* pBlackboard)
-	{
-		auto pInterface{ GetInterface(pBlackboard) };
-		if (!pInterface)
-			return false;
-
-		auto pSurvivor{ GetSurvivor(pBlackboard) };
-		if (!pSurvivor)
-			return false;
-
-		auto t = pSurvivor->GetTarget();
-
-		Elite::Vector2 agentPos{ pInterface->Agent_GetInfo().Location };
-		EAgentInfo eAgentInfo = pInterface->Agent_GetInfo();
-		const Elite::Vector2 agentForward{ eAgentInfo.GetForward() };
-		const Elite::Vector2 toTarget{ (*t - agentPos).GetNormalized() };
-
-		const float angleBetween{ Elite::ToDegrees(Elite::AngleBetween(agentForward, toTarget)) };
-		constexpr float errorMargin{ 15.f };
-
-		return angleBetween < errorMargin;
-	}
-
 	bool IsHouseInFOV(Elite::Blackboard* pBlackboard)
 	{
 		auto pHouses{ GetHousesInFOV(pBlackboard) };
@@ -200,6 +177,19 @@ namespace BT_Conditions
 		return false;
 	}
 
+	bool SeesPurgeZone(Elite::Blackboard* pBlackboard)
+	{
+		auto entitiesInFOV{ GetEntitiesInFOV(pBlackboard) };
+		if (entitiesInFOV.empty())
+			return false;
+
+		for (const auto& entity : entitiesInFOV)
+			if (entity->Type == eEntityType::PURGEZONE)
+				return true;
+
+		return false;
+	}
+
 	bool IsRewardNear(Elite::Blackboard* pBlackboard)
 	{
 		auto pInfluenceMap{ GetInfluenceMap(pBlackboard) };
@@ -230,8 +220,6 @@ namespace BT_Conditions
 		return false;
 	}
 
-
-	//Finite State Conditions
 	bool HasSeenItem(Elite::Blackboard* pBlackboard)
 	{
 		const auto& pMemory{ GetMemory(pBlackboard) };
@@ -293,7 +281,7 @@ namespace BT_Conditions
 		if (!pInterface)
 			return false;
 
-		return pInterface->Agent_GetInfo().Health < 8.0f;
+		return pInterface->Agent_GetInfo().Health < static_cast<EAgentInfo>(pInterface->Agent_GetInfo()).LowHealthThreshold;
 	}
 
 	bool IsEnergyLow(Elite::Blackboard* pBlackboard)
@@ -302,7 +290,7 @@ namespace BT_Conditions
 		if (!pInterface)
 			return false;
 
-		return pInterface->Agent_GetInfo().Energy < 8.0f;
+		return pInterface->Agent_GetInfo().Energy < static_cast<EAgentInfo>(pInterface->Agent_GetInfo()).LowEnergyThreshold;
 	}
 
 	bool HasGarbage(Elite::Blackboard* pBlackboard)
@@ -372,6 +360,19 @@ namespace BT_Conditions
 			if (!pMemory->IsHouseCleared(locatedHouse.second))
 				return false;
 		}
+
+		return true;
+	}
+
+	bool HasEveryItemType(Elite::Blackboard* pBlackboard)
+	{
+		const auto& pInventory{ GetInventory(pBlackboard) };
+		if (!pInventory)
+			return false;
+
+		for (int i{ static_cast<int>(eItemType::PISTOL) }; i < static_cast<int>(eItemType::FOOD); ++i)
+			if (!pInventory->HasItem(static_cast<eItemType>(i)))
+				return false;
 
 		return true;
 	}

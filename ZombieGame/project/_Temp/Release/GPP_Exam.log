@@ -1,9 +1,23 @@
-﻿  ISurvivorAgent.cpp
+﻿  stdafx.cpp
+C:\Users\sacha\OneDrive\Documents\College\Howest\Gameplay-Programming\GPP_Exam\ZombieGame\project\EBehaviorTree.h(393): warning C4715: 'Elite::BehaviorParallelNode::Execute': not all control paths return a value
+  BaseAgent.cpp
+  SteeringAgent.cpp
+  Generating Code...
+  EBehaviorTree.cpp
+  EGeometry2DTypes.cpp
+  EInputManager.cpp
+  EMatrix2x3.cpp
+  Inventory.cpp
+  ISurvivorAgent.cpp
   Plugin.cpp
   SurvivorAgentMemory.cpp
-C:\Users\sacha\OneDrive\Documents\College\Howest\Gameplay-Programming\GPP_Exam\ZombieGame\project\SurvivorAgentMemory.cpp(138,21): warning C4018: '<': signed/unsigned mismatch
+  Time.cpp
   Generating Code...
+  EGraphConnectionTypes.cpp
+  EGraphNodeTypes.cpp
   SteeringBehaviors.cpp
+  Generating Code...
+  EGraphRenderer.cpp
   GPP_PluginBase.lib(IBaseInterface.obj) : MSIL .netmodule or module compiled with /GL found; restarting link with /LTCG; add /LTCG to the link command line to improve linker performance
      Creating library _Temp\Release\GPP_Plugin.lib and object _Temp\Release\GPP_Plugin.exp
   Generating code

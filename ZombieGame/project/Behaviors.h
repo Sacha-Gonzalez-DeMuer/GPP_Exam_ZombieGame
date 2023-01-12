@@ -19,6 +19,7 @@
 #include "framework/EliteGeometry/EGeometry2DUtilities.h"
 #include "BT_Actions.h"
 #include "BT_Conditions.h"
+#include "BT_ObjectGetters.h"
 #include <memory>
 
 #endif

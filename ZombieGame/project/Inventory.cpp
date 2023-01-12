@@ -14,6 +14,11 @@ Inventory::Inventory(IExamInterface* pInterface, UINT inventorySize)
 	}
 }
 
+Inventory::~Inventory()
+{
+	m_pInterface = nullptr;
+}
+
 bool Inventory::EquipItem(eItemType type)
 {
 	ItemInfo item;
@@ -65,38 +70,40 @@ float Inventory::CalculateItemValue(UINT slot)
 	ItemInfo item{};
 	m_pInterface->Inventory_GetItem(slot, item);
 
-	// If item doesn't exist return
-	if (!IsValid(item))
-		return 0.0f;
-
 	float value{ 0.0f };
 
 	const float maxHP{ 10.0f };
 	const float maxEnergy{ 10.0f };
+	int medkitHP;
+	int foodEnergy;
 
 	// Calculate value per item type
 	switch (item.Type)
 	{
 	case eItemType::MEDKIT:
 		value += maxHP / m_pInterface->Agent_GetInfo().Health;
-		if (m_pInterface->Medkit_GetHealth(item) <= 0) value -= FLT_MAX;
+		medkitHP = m_pInterface->Medkit_GetHealth(item);
+		if (medkitHP <= 0) value -= FLT_MAX;
+		value += medkitHP * 2;
 		break;
 
 	case eItemType::FOOD:
 		value += maxEnergy / m_pInterface->Agent_GetInfo().Energy;
-		if (m_pInterface->Food_GetEnergy(item) <= 0) value -= FLT_MAX;
+		foodEnergy = m_pInterface->Food_GetEnergy(item);
+		if (foodEnergy <= 0) value -= FLT_MAX;
+		value += foodEnergy * 2;
 		break;
 
 	case eItemType::SHOTGUN:
 		if (!HasWeapon())
-			value += 10;
+			value += FLT_MAX;
 		value += m_pInterface->Weapon_GetAmmo(item) * 2;
 		break;
 
 	case eItemType::PISTOL:
 		if (!HasWeapon())
-			value += 10;
-		value += m_pInterface->Weapon_GetAmmo(item);
+			value += FLT_MAX;
+		value += m_pInterface->Weapon_GetAmmo(item) * 2;
 		break;
 	}
 
@@ -107,15 +114,17 @@ float Inventory::CalculateItemValue(UINT slot)
 	{
 		if (GetItem(i, inventoryItem) && inventoryItem.Type == item.Type)
 		{
-			--value;
+			value /= 2.0f; 
 			isDuplicate = true;
 			// Adjust value depending on ammo if item is a weapon
 			if (item.Type == eItemType::PISTOL || item.Type == eItemType::SHOTGUN)
 			{
-				int invWeaponAmmo{ m_pInterface->Weapon_GetAmmo(inventoryItem) };
+				int inventoryWeaponAmmo{ m_pInterface->Weapon_GetAmmo(inventoryItem) };
 				int itemAmmo{ m_pInterface->Weapon_GetAmmo(item) };
-				if (invWeaponAmmo > itemAmmo)
-					value -= invWeaponAmmo;
+
+				// If weapon in inventory has more ammo, decrease value of item on ground
+				if (inventoryWeaponAmmo > itemAmmo)
+					value -= inventoryWeaponAmmo;
 			}
 		}
 	}
@@ -123,7 +132,6 @@ float Inventory::CalculateItemValue(UINT slot)
 	// Increase value if not duplicate
 	if (!isDuplicate)
 		value *= 2;
-
 
 	return value;
 }
@@ -143,6 +151,45 @@ UINT Inventory::GetLowestValueItem()
 	}
 
 	return lowestValueIdx;
+}
+
+std::vector<UINT> Inventory::GetLowestValueDuplicates()
+{
+	std::vector<UINT> lowestValueDuplicates{};
+
+	// For every item type
+	for (UINT type = 0; type < static_cast<int>(eItemType::FOOD); ++type)
+	{
+		// Go through entire inventory and save every slot which has current item type
+		std::vector<UINT> typeSlots{};
+		for (UINT slot = 0; slot < m_InventorySize; ++slot)
+		{
+			if (m_pInventory[slot].Type == static_cast<eItemType>(type))
+				typeSlots.emplace_back(slot);
+		}
+		
+		// If holding more than one of current item type
+		if (typeSlots.size() > 1)
+		{
+			// Find which one has the lowest value
+			float lowestValue{ FLT_MIN };
+			UINT lowestValueSlot{ INVALID_INDEX };
+			for (const auto& slot : typeSlots)
+			{
+				float value{ CalculateItemValue(slot) };
+				if (value < lowestValue)
+				{
+					lowestValue = value;
+					lowestValueSlot = slot;
+				}
+			}
+
+			// Save it
+			lowestValueDuplicates.emplace_back(lowestValueSlot);
+		}
+	}
+
+	return lowestValueDuplicates;
 }
 
 bool Inventory::GrabItem(EntityInfo entity, ItemInfo& item)

@@ -15,55 +15,12 @@
 SteeringPlugin_Output Seek::CalculateSteering(float deltaT, const IExamInterface* pInterface)
 {
 	SteeringPlugin_Output steering = {};
-
 	
 	steering.LinearVelocity = pInterface->NavMesh_GetClosestPathPoint(m_Target.Position) - pInterface->Agent_GetInfo().Location;
 	steering.LinearVelocity.Normalize();
 	steering.LinearVelocity *= pInterface->Agent_GetInfo().MaxLinearSpeed;
-
-	return steering;
-}
-
-SteeringPlugin_Output Flee::CalculateSteering(float deltaT, const IExamInterface* pInterface)
-{
-
-	SteeringPlugin_Output steering = {};
-	steering.AutoOrient = false;
-	const Elite::Vector2 fromTarget{ pInterface->Agent_GetInfo().Location - m_Target.Position };
-	const float sqrtDistance{ fromTarget.MagnitudeSquared() };
-
-	if (sqrtDistance > m_Radius * m_Radius)
-	{
-		return steering;
-	}
-	steering.LinearVelocity = fromTarget;
-	steering.LinearVelocity.Normalize();
-	steering.LinearVelocity *= pInterface->Agent_GetInfo().MaxLinearSpeed;
-	return steering;
-}
-
-SteeringPlugin_Output Arrive::CalculateSteering(float deltaT, const IExamInterface* pInterface)
-{
-	SteeringPlugin_Output steering = {};
-	const float arriveDistance{ 50.f };
-	const float stopDistance{ 10.f };
-	const Elite::Vector2 vecToTarget{ m_Target.Position - pInterface->Agent_GetInfo().Location };
-
-
-	steering.LinearVelocity = vecToTarget;
-	steering.LinearVelocity.Normalize();
-	steering.LinearVelocity *= pInterface->Agent_GetInfo().MaxLinearSpeed;
-
-	if (vecToTarget.Magnitude() < arriveDistance)
-	{
-		steering.LinearVelocity *= steering.LinearVelocity.Magnitude() * (vecToTarget.Magnitude() / arriveDistance);
-	}
-
-	if (vecToTarget.Magnitude() <= stopDistance)
-	{
-		steering.LinearVelocity *= 0;
-	} 
-
+	steering.RunMode = m_RunMode;
+	steering.AutoOrient = m_AutoOrient;
 
 	return steering;
 }
@@ -103,22 +60,6 @@ void Wander::SetWanderOffset(float offset)
 	m_OffsetDistance = offset;
 }
 
-SteeringPlugin_Output Evade::CalculateSteering(float deltaT, const IExamInterface* pAgent)
-{
-	SteeringPlugin_Output steering{};
-
-	return steering;
-}
-
-SteeringPlugin_Output Pursuit::CalculateSteering(float deltaT, const IExamInterface* pInterface)
-{
-	SteeringPlugin_Output steering{};
-	Elite::Vector2 futurePos{ pInterface->Agent_GetInfo().Location + pInterface->Agent_GetInfo().LinearVelocity };
-	
-
-	return steering;
-}
-
 SteeringPlugin_Output LookAround::CalculateSteering(float deltaT, const IExamInterface* pInterface)
 {
 	SteeringPlugin_Output steering{};
@@ -134,111 +75,27 @@ SteeringPlugin_Output LookAt::CalculateSteering(float deltaT, const IExamInterfa
 {
 	SteeringPlugin_Output steering = {};
 	steering.AutoOrient = false;
+	const EAgentInfo& agentInfo = pInterface->Agent_GetInfo();
 
-	Elite::Vector2 dir_vector = m_Target.Position - pInterface->Agent_GetInfo().Location;
-	dir_vector.Normalize();
+	Elite::Vector2 toTarget = m_Target.Position - agentInfo.Location;
+	toTarget.Normalize();
 
-	const float targetAngle = atan2f(dir_vector.y, dir_vector.x);
-	const float agentAngle = pInterface->Agent_GetInfo().Orientation;
-	float deltaAngle = targetAngle - agentAngle;
+	Elite::Vector2 forward = agentInfo.GetForward();
 
-	// Make sure deltaAngle is between -pi and pi
-	while (deltaAngle > M_PI) deltaAngle -= 2 * static_cast<float>(M_PI);
-	while (deltaAngle < -M_PI) deltaAngle += 2 * static_cast<float>(M_PI);
-
-	if (abs(deltaAngle) <= .02f)
+	float crossProduct = forward.Cross(toTarget);
+	if (crossProduct >= 0)
 	{
-		return steering;
+		steering.AngularVelocity = agentInfo.MaxAngularSpeed;;
 	}
-
-	steering.AngularVelocity = pInterface->Agent_GetInfo().MaxAngularSpeed;
-
-	// Check the shortest rotation direction
-	if (abs(deltaAngle) > M_PI / 2)
+	else if (crossProduct < 0)
 	{
-		steering.AngularVelocity = -steering.AngularVelocity;
+		steering.AngularVelocity = -agentInfo.MaxAngularSpeed;
 	}
 
 	return steering;
 }
 
-
-SteeringPlugin_Output Explore::CalculateSteering(float deltaT, const IExamInterface* pInterface)
-{
-	SteeringPlugin_Output steering{};
-	const WorldInfo worldInfo{ pInterface->World_GetInfo() };
-	const AgentInfo& agentInfo{ pInterface->Agent_GetInfo() };
-
-
-	if (m_ReachedTarget)
-	{
-		std::unordered_set<int> nodesInRadius{};
-		// Allow agent to go further than center radius before having to return (m_CenterRadiusDenominator * 2)
-		const bool isFarFromCenter{ agentInfo.Location.Distance(worldInfo.Center) > (worldInfo.Dimensions.x / m_CenterRadiusDenominator) * 1.5f};
-
-		// If too far from center, get an unexplored node around the center
-		if (isFarFromCenter)
-		{
-			// Get node within world center
-			nodesInRadius = m_pInfluenceMap->GetNodeIndicesInRadius(worldInfo.Center, worldInfo.Dimensions.x / m_CenterRadiusDenominator);
-			SetRunMode(true);
-		}
-		else
-		{
-			// Otherwise find node around agent himself
-			nodesInRadius = m_pInfluenceMap->GetNodeIndicesInRadius(agentInfo.Location, agentInfo.FOV_Range * 2);
-			SetRunMode(false);
-		}
-
-		std::vector<int> unexploredNodes{};
-		for (const auto& nodeIdx : nodesInRadius)
-		{
-			const auto& node{ m_pInfluenceMap->GetNode(nodeIdx) };
-
-			if (!node->GetScanned())
-				unexploredNodes.emplace_back(nodeIdx);
-		}
-
-		if (unexploredNodes.empty())
-		{
-			if (isFarFromCenter && m_CenterRadiusDenominator > 1) // if entire center explored
-				--m_CenterRadiusDenominator; // extend center radius
-
-			return Wander::CalculateSteering(deltaT, pInterface);
-		}
-
-		auto closestUnexploredNode{ m_pInfluenceMap->GetNode(unexploredNodes[0]) };
-		for (const int unexploredIdx : unexploredNodes)
-		{
-			const auto& unexploredNode{ m_pInfluenceMap->GetNode(unexploredIdx) };
-
-			if (unexploredNode->GetPosition().DistanceSquared(agentInfo.Location) < closestUnexploredNode->GetPosition().DistanceSquared(agentInfo.Location))
-				closestUnexploredNode = unexploredNode;
-		}
-
-		m_Target.Position = closestUnexploredNode->GetPosition();
-	}
-	
-
-	float arriveRange{ agentInfo.GrabRange * 1.5f };
-
-	if (m_Target.Position.DistanceSquared(agentInfo.Location) < arriveRange * arriveRange)
-	{
-		m_ReachedTarget = true;
-	}
-	else
-	{
-		m_ReachedTarget = false;
-	}
-
-	Seek seek{};
-	seek.SetTarget(m_Target.Position);
-	steering = seek.CalculateSteering(deltaT, pInterface);
-
-	return steering;
-}
-
-SteeringPlugin_Output ExploreArea::CalculateSteering(float deltaT, const IExamInterface* pInterface)
+SteeringPlugin_Output ClearArea::CalculateSteering(float deltaT, const IExamInterface* pInterface)
 {
 	std::cout << "Exploring Area\n";
 	SteeringPlugin_Output steering{};
@@ -248,42 +105,27 @@ SteeringPlugin_Output ExploreArea::CalculateSteering(float deltaT, const IExamIn
 
 	if (m_ReachedTarget)
 	{
-		////Find closest unexplored node
-		//auto closestUnexploredNode{ m_pInfluenceMap->GetNode(*m_AreaToExplore.begin()) };
-		//for (const int nodeIdx : m_AreaToExplore)
-		//{
-		//	const auto& node{ m_pInfluenceMap->GetNode(nodeIdx) };
-		//	if (node->GetScanned())
-		//		m_AreaToExplore.erase(nodeIdx);
-
-		//	if (node->GetPosition().DistanceSquared(agentInfo.Location) < closestUnexploredNode->GetPosition().DistanceSquared(agentInfo.Location))
-		//		closestUnexploredNode = node;
-		//}
-
-		for (auto it = m_AreaToExplore.begin(); it != m_AreaToExplore.end(); ) {
+		for (auto it = m_AreaToClear.begin(); it != m_AreaToClear.end(); ) {
 			const auto& node{ m_pInfluenceMap->GetNode(*it) };
 			if (node->GetScanned())
-				it = m_AreaToExplore.erase(it);
+				it = m_AreaToClear.erase(it);
 			else
 				++it;
 		}
 		
-
-		if(!m_AreaToExplore.empty())
-			m_Target.Position = m_pInfluenceMap->GetNode(*m_AreaToExplore.begin())->GetPosition();
-
+		if(!m_AreaToClear.empty())
+			m_Target.Position = m_pInfluenceMap->GetNode(*m_AreaToClear.begin())->GetPosition();
 	}
 
-	//TODO: grabRange * 1.5f = m_CellSize
-	float arriveRange{ agentInfo.GrabRange * 1.5f };
+	int arriveRange{ m_pInfluenceMap->GetCellSize() };
 	m_ReachedTarget = m_Target.Position.DistanceSquared(agentInfo.Location) < arriveRange * arriveRange;
 
 
 	//Go to
-	Seek seek{};
-	seek.SetTarget(m_Target.Position);
-	steering = seek.CalculateSteering(deltaT, pInterface);
+	SetTarget(m_Target.Position);
+	steering = Seek::CalculateSteering(deltaT, pInterface);
 
+	steering.RunMode = m_RunMode;
 	return steering;
 }
 
@@ -295,36 +137,88 @@ SteeringPlugin_Output NavigateInfluence::CalculateSteering(float deltaT, const I
 	const WorldInfo worldInfo{ pInterface->World_GetInfo() };
 	const AgentInfo& agentInfo{ pInterface->Agent_GetInfo() };
 
+
+	const float influenceWeight = 1.f; // This variable can be adjusted to increase or decrease the weight of influence
 	// Get nodes in fov range
-	const auto& nodeIndices{ m_pInfluenceMap->GetNodeIndicesInRadius(agentInfo.Location, agentInfo.FOV_Range) };
+	const auto& nodeIndices{ m_pInfluenceMap->GetNodeIndicesInRadius(agentInfo.Location, agentInfo.FOV_Range * 4) };
 	const auto& nodes{ m_pInfluenceMap->GetNodes(nodeIndices) };
 
-	float highestInfluence{ -100.0f };
-	int highestIdx{ -1 };
-
-	//find node with best influence
 	for (const auto& node : nodes)
 	{
-		if (node->GetInfluence() > highestInfluence)
+		Elite::Vector2 nodePos{ node->GetPosition() };
+		Elite::Vector2 toNodeVec = nodePos - agentInfo.Location;
+		float distSq = toNodeVec.MagnitudeSquared();
+		toNodeVec.Normalize();
+		float influence = node->GetInfluence();
+
+		// Subtract low influence and add high influence
+		steering.LinearVelocity -= toNodeVec * influenceWeight * influence * (1.f - distSq / (agentInfo.FOV_Range * agentInfo.FOV_Range));
+	}
+
+	steering.LinearVelocity.Normalize();
+	steering.LinearVelocity *= agentInfo.MaxLinearSpeed;
+
+	// Normalize the vector
+	const bool isDangerous{ m_pInfluenceMap->GetNodeAtWorldPos(agentInfo.Location)->GetInfluence() < -10.0f };
+	steering.RunMode = isDangerous;
+
+	steering.AngularVelocity = agentInfo.MaxAngularSpeed;
+	steering.AutoOrient = false;
+	return steering;
+}
+
+SteeringPlugin_Output CircularPatrol::CalculateSteering(float deltaT, const IExamInterface* pInterface)
+{
+	std::cout << "Patrolling\n";
+	SteeringPlugin_Output steering{};
+	Elite::Vector2 currentPatrolPoint{ m_PatrolPoints[m_PatrolIdx] };
+	const AgentInfo& agentInfo{ pInterface->Agent_GetInfo() };
+	const WorldInfo worldInfo{ pInterface->World_GetInfo() };
+
+	// Go to patrol point
+	SetTarget(m_PatrolPoints[m_PatrolIdx]);
+
+	steering = Seek::CalculateSteering(deltaT, pInterface);
+	steering.LinearVelocity += Wander::CalculateSteering(deltaT, pInterface).LinearVelocity; // Add wander to make patrol a little random
+
+	if (agentInfo.Location.DistanceSquared(currentPatrolPoint) < agentInfo.FOV_Range * agentInfo.FOV_Range)
+	{
+		m_PatrolIdx = (m_PatrolIdx+1) % static_cast<int>(m_PatrolPoints.size());
+
+		// When entire path has been patrolled, extend patrol radius
+		if (m_PatrolIdx == 0)
 		{
-			highestInfluence = node->GetInfluence();
-			highestIdx = node->GetIndex();
+			const int nrPoints{ static_cast<int>(m_PatrolPoints.size()) };
+			m_PatrolPoints.clear();
+
+			// If radius would extend beyong the map, start shrinking
+			if (m_Radius + m_ExtensionLength > max(worldInfo.Dimensions.x, worldInfo.Dimensions.y))
+				m_ExtensionLength = -m_ExtensionLength / 2;
+			// Otherwise if radius would become to small, start extending again
+			else if (m_Radius + m_ExtensionLength <= agentInfo.FOV_Range)
+				m_ExtensionLength = abs(m_ExtensionLength);
+
+
+			InitializeCircularPath(m_Center, m_Radius + m_ExtensionLength, nrPoints, m_ExtensionLength);
 		}
 	}
 
-	//const auto& lowestInfluenceNode{ m_pInfluenceMap->GetNode(lowestIdx) };
-	const bool isDangerous{ m_pInfluenceMap->GetNodeAtWorldPos(agentInfo.Location)->GetInfluence() < 0.0f };
-	SetRunMode(isDangerous); //danger, run
-
-	
-	// Go to
-	Seek seek{};
-	seek.SetAutoOrient(false);
-	seek.SetTarget(m_pInfluenceMap->GetNode(highestIdx)->GetPosition());
-	steering = seek.CalculateSteering(deltaT, pInterface);
-
-
-	steering.AngularVelocity = agentInfo.MaxAngularSpeed;
-	steering.AutoOrient = !isDangerous;
 	return steering;
+}
+
+void CircularPatrol::InitializeCircularPath(const Elite::Vector2& center, float radius, int nrPoints, float extensionLength)
+{
+	m_Center = center;
+	m_PatrolRadius = m_PatrolRadius;
+	m_ExtensionLength = extensionLength;
+
+	float deltaAngle{ Elite::ToRadians(360.0f / nrPoints) };
+	Elite::Vector2 point{};
+
+	for (int i{ 0 }; i < nrPoints; ++i)
+	{
+		point.x = radius * cosf(i * deltaAngle) + center.x;
+		point.y = radius * sinf(i * deltaAngle) + center.y;
+		m_PatrolPoints.push_back(point);
+	}
 }

@@ -26,22 +26,22 @@ public:
 	std::unordered_set<int> GetLocatedItems() const { return m_LocatedItems; };
 	std::unordered_map<int, EHouseInfo> GetLocatedHouses() const { return m_LocatedHouses; };
 	std::unordered_set<int> GetHouseArea(const HouseInfo& house);
+	void ForgetArea(std::unordered_set<int> area);
 	bool OnPickUpItem(const ItemInfo& item);
 	bool OnPickUpItem(const EntityInfo& entity);
 	 
-	void LocateHouse( HouseInfo houseInfo);
+	void LocateHouse(const HouseInfo& houseInfo);
 	bool IsHouseCleared(const HouseInfo& houseInfo);
 	bool IsHouseCleared(const HouseInfo& houseInfo, std::unordered_set<int>& area);
 	bool IsHouseCleared(std::unordered_set<int>& unscannedArea, const HouseInfo& houseInfo);
 
-	void UpdateHouses(IExamInterface* pInterface, const std::vector<HouseInfo*>& housesInFOV);
+	void UpdateHouses(float deltaTime, IExamInterface* pInterface, const std::vector<HouseInfo*>& housesInFOV);
 	bool IsAreaExplored(std::unordered_set<int> area) const;
 	bool IsAreaExplored(std::unordered_set<int> area, std::unordered_set<int>& unscannedArea) const;
 
 private:
 	IExamInterface* m_pInterface;
 
-	//InfluenceMap
 	Elite::InfluenceMap<InfluenceGrid>* m_pInfluenceMap{ nullptr };
 	Elite::GraphRenderer* m_pGraphRenderer{ nullptr };
 	float m_PropagationRadius;
@@ -49,15 +49,12 @@ private:
 	std::unordered_set<int> m_LocatedItems{};
 
 	int m_NrSeenHouses{};
-
 	std::unordered_map<int, EHouseInfo> m_LocatedHouses{};
 
-	std::vector<EHouseInfo> m_SeenHouses{};
-	std::vector<EHouseInfo> m_ClearedHouses{};
-	float m_PercentageToClear{ .5f };
+	float m_PercentageToClear{ .95f };
 
 	void LocateItem(const ItemInfo& item);
 	void UpdateInfluenceMap(float deltaTime, IExamInterface* pInterface);
-	void UpdateSeenCells(IExamInterface* pInterface, std::vector<EntityInfo*> entitiesInFOV);
+	void UpdateEntities(IExamInterface* pInterface, std::vector<EntityInfo*> entitiesInFOV);
 };
 

@@ -1,11 +1,24 @@
-﻿  SteeringAgent.cpp
+﻿  stdafx.cpp
+C:\Users\sacha\OneDrive\Documents\College\Howest\Gameplay-Programming\GPP_Exam\ZombieGame\project\EBehaviorTree.h(393): warning C4715: 'Elite::BehaviorParallelNode::Execute': not all control paths return a value
+  BaseAgent.cpp
+  SteeringAgent.cpp
+  Generating Code...
+  EBehaviorTree.cpp
+  EGeometry2DTypes.cpp
+  EInputManager.cpp
+  EMatrix2x3.cpp
+  Inventory.cpp
   ISurvivorAgent.cpp
+  Memory.cpp
   Plugin.cpp
   SurvivorAgentMemory.cpp
+  Time.cpp
   Generating Code...
+  EGraphConnectionTypes.cpp
   EGraphNodeTypes.cpp
   CombinedSteeringBehaviors.cpp
   SteeringBehaviors.cpp
   Generating Code...
   EGraphRenderer.cpp
+     Creating library C:\Users\sacha\OneDrive\Documents\College\Howest\Gameplay-Programming\GPP_Exam\ZombieGame\project\..\_DEMO_DEBUG\GPP_Plugin_d.lib and object C:\Users\sacha\OneDrive\Documents\College\Howest\Gameplay-Programming\GPP_Exam\ZombieGame\project\..\_DEMO_DEBUG\GPP_Plugin_d.exp
   GPP_Exam.vcxproj -> C:\Users\sacha\OneDrive\Documents\College\Howest\Gameplay-Programming\GPP_Exam\ZombieGame\_DEMO_DEBUG\GPP_Plugin_d.dll

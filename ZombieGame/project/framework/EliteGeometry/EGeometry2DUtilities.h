@@ -238,6 +238,12 @@ namespace Elite
 		return false;
 	}
 
+	inline bool IsCirclesOverlapping(const Vector2& center1, const Vector2& center2, float radius1, float radius2)
+	{
+		float distance = (center1 - center2).Magnitude();
+		return distance < (radius1 + radius2);
+	}
+
 
 }
 #endif

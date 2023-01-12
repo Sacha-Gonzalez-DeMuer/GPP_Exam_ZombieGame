@@ -103,23 +103,10 @@ namespace Elite
 		InfluenceNode(int index, Elite::Vector2 pos = { 0,0 }, float influence = 0.f)
 			: GraphNode2D(index, pos), m_Influence(influence){}
 
-		void UpdateDecay(float deltaTime)
-		{
-			if(m_Influence > 0)
-				m_Influence -= m_DecayRate * deltaTime;
-
-			if (m_Influence < 0)
-				m_Influence += m_DecayRate * deltaTime;
-		}
-
 		float GetInfluence() const { return m_Influence; };
 		void SetInfluence(float influence) { m_Influence = influence; };
-
-		void SetBaseInfluence(float influence) { m_BaseInfluence = influence; };
-	private:
-		float m_DecayRate{ 2.0f };
+	protected:
 		float m_Influence;
-		float m_BaseInfluence;
 	};
 
 	class WorldNode final : public Elite::InfluenceNode
@@ -129,10 +116,8 @@ namespace Elite
 			: Elite::InfluenceNode(index, pos, influence), m_Scanned(false), m_Item(eItemType::INVALID), m_ItemPos(FLT_MAX, FLT_MAX) {}
 
 
-
 		bool GetScanned() const { return m_Scanned; };
 		void SetScanned(bool scanned) { m_Scanned = scanned; };
-
 		bool HasItem() const { return m_Item != eItemType::INVALID; };
 		eItemType GetItem() const { return m_Item; };
 		void SetItem(const ItemInfo& item) 

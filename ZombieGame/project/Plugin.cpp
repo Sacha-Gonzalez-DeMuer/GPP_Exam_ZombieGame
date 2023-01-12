@@ -22,7 +22,7 @@ void Plugin::Initialize(IBaseInterface* pInterface, PluginInfo& info)
 
 	//Bit information about the plugin
 	//Please fill this in!!
-	info.BotName = "MinionExam";
+	info.BotName = "Giuseppe";
 	info.Student_FirstName = "Sacha";
 	info.Student_LastName = "Gonzalez De Muer";
 	info.Student_Class = "2DAE15";
@@ -61,7 +61,7 @@ void Plugin::InitGameDebugParams(GameDebugParams& params)
 	params.SpawnPurgeZonesOnMiddleClick = true;
 	params.PrintDebugMessages = true;
 	params.ShowDebugItemNames = true;
-	params.Seed = 44;
+	params.Seed = 1078;
 }
 
 void Plugin::Update(float dt)

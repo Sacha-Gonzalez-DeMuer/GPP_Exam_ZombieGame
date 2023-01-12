@@ -89,4 +89,38 @@ namespace BT_Functions
 
 		return pSurvivor->GetHousesInFOV();
 	}
+
+	Elite::Vector2 GetPositionOutsidePurgeZone(Elite::Blackboard* pBlackboard)
+	{
+		const auto& pSurvivor(GetSurvivor(pBlackboard));
+		if (!pSurvivor)
+			return INVALID_VECTOR2;
+
+		const auto& entitiesInFOV{ GetEntitiesInFOV(pBlackboard) };
+		if (entitiesInFOV.empty())
+			return INVALID_VECTOR2;
+
+		const auto& pInterface{ GetInterface(pBlackboard) };
+		if (!pInterface)
+			return INVALID_VECTOR2;
+
+		PurgeZoneInfo info{};
+		for (const auto& entity : entitiesInFOV)
+		{
+			if (entity->Type == eEntityType::PURGEZONE)
+			{
+				pInterface->PurgeZone_GetInfo(*entity, info);
+
+				Elite::Vector2 toCenter{ info.Center - pSurvivor->GetLocation() };
+				Elite::Vector2 pos{ info.Center };
+				pos.x -= toCenter.x * (info.Radius + pSurvivor->GetInfo().FOV_Range);
+				pos.y -= toCenter.y * (info.Radius + pSurvivor->GetInfo().FOV_Range);
+
+				return pos;
+			}
+		}
+
+		return INVALID_VECTOR2;
+	}
+
 }

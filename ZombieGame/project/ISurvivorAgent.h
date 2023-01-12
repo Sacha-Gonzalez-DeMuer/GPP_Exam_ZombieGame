@@ -21,7 +21,7 @@ enum class SurvivorState
 	AGGRO,
 };
 
-class ISurvivorAgent : public SteeringAgent
+class ISurvivorAgent final : public SteeringAgent
 {
 public:
 	ISurvivorAgent(IExamInterface* pInterface);
@@ -39,12 +39,11 @@ public:
 	std::vector<EntityInfo*> GetEntitiesInFOV() const { return m_pEntitiesInFOV; };
 	std::vector<HouseInfo*> GetHousesInFOV() const { return m_pHousesInFOV; };
 	bool IsInFOV(const EntityInfo& e) const;
-	
+	bool GunOnCooldown() const { return m_CooldownTimer < m_ShotCooldown; };
+	void OnShoot() { m_CooldownTimer = 0; };
 protected:
 	std::vector<EntityInfo*> m_pEntitiesInFOV{};
 	std::vector<HouseInfo*> m_pHousesInFOV{};
-
-	HouseInfo* GetNearestHouse(const Elite::Vector2& fromPos) const;
 
 private:
 	//Data
@@ -57,6 +56,8 @@ private:
 	void InitializeBehaviorTree(IExamInterface* pInterface);
 	Elite::Blackboard* CreateBlackboard(IExamInterface* pAgentInfo);
 
+	float m_ShotCooldown{ .3f };
+	float m_CooldownTimer{ .3f };
 	//Memory
 	std::shared_ptr<SurvivorAgentMemory> m_pMemory;
 

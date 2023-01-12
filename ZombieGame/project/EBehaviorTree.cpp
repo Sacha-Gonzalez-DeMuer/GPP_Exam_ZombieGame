@@ -138,10 +138,11 @@ BehaviorState Elite::BehaviorParallel::Execute(Blackboard* blackboard)
 			}
 		}
 		else if (childStatus == BehaviorState::Running) {
-			++failureCount;
+			/*++failureCount;
 			if (failureCount >= m_minFailure) {
 				return BehaviorState::Failure;
-			}
+			}*/
+			return BehaviorState::Running;
 		}
 	}
 

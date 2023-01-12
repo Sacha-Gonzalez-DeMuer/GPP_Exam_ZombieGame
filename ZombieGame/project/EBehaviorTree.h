@@ -230,7 +230,7 @@ namespace Elite
 	class TBehaviorAction : public IBehavior {
 	public:
 		explicit TBehaviorAction(std::function<BehaviorState(Blackboard*, T1)> fp, std::function<T1(Blackboard*)> objFunction)
-			: m_fpAction(fp), m_ObjFunc(objFunction) {}
+			: m_fpAction(fp), m_ObjFunc(objFunction), m_ObjFunc1{ nullptr } {}
 
 		explicit TBehaviorAction(std::function<BehaviorState(Blackboard*, T1)> fp, std::function<T1(Blackboard*, T2)> objFunction, T2 obj)
 			: m_fpAction2(fp), m_ObjFunc1(objFunction), m_Obj(obj) {}
@@ -364,6 +364,34 @@ namespace Elite
 		IBehavior* m_pConditional = nullptr;
 		bool m_Invert{ false };
 	};
+
+
+	class BehaviorParallelNode : public IBehavior
+	{
+	public:
+		explicit BehaviorParallelNode(IBehavior* action1, IBehavior* action2) : m_action1(action1), m_action2(action2) {}
+		virtual BehaviorState Execute(Blackboard* pBlackBoard) override;
+
+	private:
+		IBehavior* m_action1;
+		IBehavior* m_action2;
+	};
+
+	BehaviorState BehaviorParallelNode::Execute(Blackboard* pBlackBoard)
+	{
+		BehaviorState state1 = m_action1->Execute(pBlackBoard);
+		BehaviorState state2 = m_action2->Execute(pBlackBoard);
+		// Determine overall state based on the return values of state1 and state2
+		if (state1 == BehaviorState::Success && state2 == BehaviorState::Success)
+			return BehaviorState::Success;
+
+		if (state1 == BehaviorState::Running || state2 == BehaviorState::Running)
+			return BehaviorState::Running;
+
+		if (state1 == BehaviorState::Failure && state2 == BehaviorState::Failure)
+			return BehaviorState::Failure;
+	}
+
 
 	//-----------------------------------------------------------------
 	// BEHAVIOR TREE (BASE)
